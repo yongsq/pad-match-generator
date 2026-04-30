@@ -352,7 +352,7 @@ function App() {
   if (authLoading) return <div style={{color:'white', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Verifying Session...</div>;
   
   // Only allow sessions with a real email (no Guests)
-  if (!session || session.user.is_anonymous) {
+  if (!session || !session.user.email) {
     return <Auth />;
   }
 
