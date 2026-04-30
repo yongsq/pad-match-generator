@@ -5,8 +5,6 @@ import type { MatchCardData } from '../lib/matchLogic';
 export const CourtSideDisplay: React.FC = () => {
   const [data, setData] = useState<{ 
     currentMatches: MatchCardData[], 
-    nextMatches: MatchCardData[], 
-    roundNumber: number,
     sessionTitle: string 
   } | null>(null);
   
@@ -37,6 +35,15 @@ export const CourtSideDisplay: React.FC = () => {
     );
   }
 
+  // Group active matches by round
+  const roundsMap = new Map<number, MatchCardData[]>();
+  data.currentMatches.forEach(m => {
+    const list = roundsMap.get(m.round) || [];
+    list.push(m);
+    roundsMap.set(m.round, list.sort((a, b) => a.court - b.court));
+  });
+  const sortedRounds = Array.from(roundsMap.entries()).sort((a, b) => a[0] - b[0]);
+
   return (
     <div style={{
       position: 'fixed',
@@ -55,77 +62,78 @@ export const CourtSideDisplay: React.FC = () => {
       {/* GLOBAL HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4vh', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <div style={{ background: '#39ff14', color: 'black', padding: '0.4rem 1.5rem', borderRadius: '4px', fontWeight: 900, fontSize: '2.5rem', boxShadow: '0 0 20px rgba(57, 255, 20, 0.5)' }}>
+          <div style={{ background: '#39ff14', color: 'black', padding: '0.4rem 1.5rem', borderRadius: '4px', fontWeight: 900, fontSize: '2rem', boxShadow: '0 0 20px rgba(57, 255, 20, 0.5)' }}>
             PAD LIVE
           </div>
-          <h1 style={{ margin: 0, fontSize: '3rem', fontWeight: 900, letterSpacing: '-0.02em' }}>{data.sessionTitle}</h1>
+          <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-0.02em' }}>{data.sessionTitle}</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: 0.8, fontSize: '2rem', fontWeight: 800 }}>
-           <Clock size={32} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: 0.8, fontSize: '1.8rem', fontWeight: 800 }}>
+           <Clock size={28} />
            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
 
-      {/* FULL WIDTH GRID */}
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <h2 style={{ fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5em', color: '#39ff14', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Zap size={24} fill="#39ff14" /> ROUND {data.roundNumber} • MATCHES IN PROGRESS
-        </h2>
-        
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
-          gap: '2.5vw',
-          alignContent: 'start',
-          flex: 1
-        }}>
-          {data.currentMatches.map((m, idx) => {
-            const isFeatured = m.court === 1 || m.court === 2;
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4vh', overflowY: 'auto', flex: 1, paddingBottom: '5vh' }}>
+        {sortedRounds.map(([roundNum, matches]) => (
+          <div key={roundNum} style={{ display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '0.5em', color: '#39ff14', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Zap size={20} fill="#39ff14" /> ROUND {roundNum} • MATCHES IN PROGRESS
+            </h2>
             
-            return (
-              <div key={idx} style={{ 
-                background: isFeatured 
-                  ? 'rgba(57, 255, 20, 0.05)' 
-                  : 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
-                borderRadius: '2rem',
-                padding: isFeatured ? '3.5rem' : '2.5rem',
-                border: isFeatured ? '3px solid #39ff14' : '2px solid rgba(255,255,255,0.05)',
-                position: 'relative',
-                boxShadow: isFeatured ? '0 0 40px rgba(57, 255, 20, 0.2)' : 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                transition: 'all 0.3s ease'
-              }}>
-                <div style={{ 
-                  position: 'absolute', 
-                  top: '1.5rem', 
-                  left: '2rem', 
-                  fontSize: isFeatured ? '1.5rem' : '1rem', 
-                  fontWeight: 900, 
-                  color: isFeatured ? '#39ff14' : 'rgba(255,255,255,0.3)',
-                  letterSpacing: '0.2em'
-                }}>
-                  COURT {m.court}
-                </div>
+            <div style={{ 
+              display: 'flex',
+              gap: '2vw',
+              alignItems: 'stretch'
+            }}>
+              {matches.map((m, idx) => {
+                const isFeatured = m.court === 1 || m.court === 2;
+                
+                return (
+                  <div key={idx} style={{ 
+                    flex: isFeatured ? 1.5 : 1,
+                    background: isFeatured 
+                      ? 'rgba(57, 255, 20, 0.05)' 
+                      : 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
+                    borderRadius: '1.5rem',
+                    padding: isFeatured ? '2.5rem' : '1.5rem',
+                    border: isFeatured ? '3px solid #39ff14' : '2px solid rgba(255,255,255,0.05)',
+                    position: 'relative',
+                    boxShadow: isFeatured ? '0 0 30px rgba(57, 255, 20, 0.2)' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '1rem', 
+                      left: '1.5rem', 
+                      fontSize: isFeatured ? '1.2rem' : '0.8rem', 
+                      fontWeight: 900, 
+                      color: isFeatured ? '#39ff14' : 'rgba(255,255,255,0.3)',
+                      letterSpacing: '0.2em'
+                    }}>
+                      COURT {m.court}
+                    </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: isFeatured ? '2rem' : '1.5rem', marginTop: '1.5rem' }}>
-                  <div style={{ fontSize: isFeatured ? '3.5rem' : '2.5rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
-                    {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: isFeatured ? '1rem' : '0.5rem', marginTop: '1.5rem' }}>
+                      <div style={{ fontSize: isFeatured ? '2.5rem' : '1.8rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
+                        {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
+                      </div>
+                      <div style={{ height: '2px', background: isFeatured ? 'rgba(57, 255, 20, 0.2)' : 'rgba(255,255,255,0.1)', width: '60px' }} />
+                      <div style={{ fontSize: isFeatured ? '2.5rem' : '1.8rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
+                        {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ height: '2px', background: isFeatured ? 'rgba(57, 255, 20, 0.2)' : 'rgba(255,255,255,0.1)', width: '100px' }} />
-                  <div style={{ fontSize: isFeatured ? '3.5rem' : '2.5rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
-                    {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <footer style={{ marginTop: '2vh', textAlign: 'center', opacity: 0.1, fontSize: '0.9rem' }}>
-        PAD ACADEMY BROADCAST SYSTEM • ALL COURTS ACTIVE
+      <footer style={{ marginTop: '2vh', textAlign: 'center', opacity: 0.1, fontSize: '0.8rem' }}>
+        PAD ACADEMY BROADCAST SYSTEM
       </footer>
     </div>
   );

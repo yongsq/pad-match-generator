@@ -102,10 +102,11 @@ function App() {
     const channel = new BroadcastChannel('pad_tv_channel');
     
     const sendUpdate = () => {
+      const activeMatches = currentRoundResults.filter(m => !m.isSaved);
+      
       channel.postMessage({
-        currentMatches: currentRoundResults.filter(m => !m.isSaved),
+        currentMatches: activeMatches,
         nextMatches: [],
-        roundNumber: Math.max(1, roundNumber - 1),
         sessionTitle: activeSession?.name || 'Tournament'
       });
     };
