@@ -310,15 +310,10 @@ function App() {
     }));
   };
 
-  const handleSaveResult = async (idx: number) => {
+  const handleSaveResult = (idx: number) => {
     const match = currentRoundResults[idx];
     
     if (match.isSaved) {
-      if (activeSession) {
-        const success = await saveMatch(activeSession.id, { ...match, isSaved: true });
-        if (!success) return; // Abort if cloud save failed
-      }
-      
       // Allow editing: update existing log
       const updatedResults = results.map(r => 
         (r.round === match.round && r.court === match.court)
@@ -326,19 +321,18 @@ function App() {
           : r
       );
       setResults(updatedResults);
+      
+      // Update Cloud in background
+      if (activeSession) {
+        saveMatch(activeSession.id, { ...match, isSaved: true }).catch(console.error);
+      }
       return;
     }
 
-    // 1. Cloud Sync FIRST
-    if (activeSession) {
-      const success = await saveMatch(activeSession.id, { ...match, isSaved: true });
-      if (!success) return; // Abort if cloud save failed
-    }
-
-    // 2. Mark as saved locally
+    // 1. Mark as saved locally
     setCurrentRoundResults(prev => prev.map((m, i) => i === idx ? { ...m, isSaved: true } : m));
 
-    // 3. Add to logs
+    // 2. Add to logs
     const newResult = {
       round: match.round,
       court: match.court,
@@ -349,8 +343,13 @@ function App() {
     };
     setResults(prev => [...prev, newResult]);
 
-    // 4. Update matrix
+    // 3. Update matrix
     setMatrix(prevMatrix => updateMatrixWithResult(prevMatrix, match.teamA, match.teamB));
+
+    // 4. Background Cloud Sync (with retries)
+    if (activeSession) {
+      saveMatch(activeSession.id, { ...match, isSaved: true }).catch(console.error);
+    }
   };
 
 

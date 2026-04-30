@@ -89,10 +89,10 @@ export async function getTournaments(): Promise<TournamentSession[]> {
   return data as TournamentSession[];
 }
 
-export async function saveMatch(tournamentId: string, match: any): Promise<boolean> {
+export async function saveMatch(tournamentId: string, match: any, retryCount = 0): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    alert("Authentication Error: You are not logged in. Cannot save match.");
+    console.error("Authentication Error: You are not logged in. Cannot save match.");
     return false;
   }
 
@@ -113,9 +113,17 @@ export async function saveMatch(tournamentId: string, match: any): Promise<boole
     });
 
   if (error) {
-    console.error('Error saving match:', error.message);
-    alert(`CRITICAL DATABASE ERROR!\n\nYour match WAS NOT SAVED to the cloud.\nError: ${error.message}\n\nPlease take a screenshot of your screen to preserve scores. Do not close the session.`);
-    return false;
+    console.error(`Error saving match (Attempt ${retryCount + 1}):`, error.message);
+    if (retryCount < 3) {
+      // Exponential backoff: 2s, 4s, 8s
+      const delay = Math.pow(2, retryCount) * 2000;
+      await new Promise(res => setTimeout(res, delay));
+      return saveMatch(tournamentId, match, retryCount + 1);
+    } else {
+      // If we fail after 3 retries, notify the user but don't crash
+      alert(`CLOUD SYNC FAILED after 4 attempts.\n\nYour match data has been saved LOCALLY on this device. Please do not clear your browser cache.`);
+      return false;
+    }
   }
   return true;
 }
