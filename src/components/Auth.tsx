@@ -108,7 +108,7 @@ export const Auth: React.FC = () => {
             />
           </div>
 
-          {error && (
+          {error && !error.includes('Anonymous') && (
             <div style={{ color: 'var(--danger-color)', fontSize: '0.8rem', textAlign: 'center', padding: '0.5rem', background: 'rgba(255, 71, 87, 0.1)', borderRadius: '4px' }}>
               {error}
             </div>
