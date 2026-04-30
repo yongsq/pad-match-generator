@@ -61,35 +61,15 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // LocalStorage Persistence
-  useEffect(() => {
-    const saved = localStorage.getItem('pickleballState');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setPlayers(parsed.players || []);
-        if (parsed.courts !== undefined) setCourts(parsed.courts);
-        setMatrix(parsed.matrix || {});
-        setResults(parsed.results || []);
-        setCurrentRoundResults(parsed.currentRoundResults || []);
-        setRoundNumber(parsed.roundNumber || 1);
-        setIsEndlessMode(parsed.isEndlessMode ?? true);
-        if (parsed.targetRounds !== undefined) setTargetRounds(parsed.targetRounds);
-        if (parsed.maxPartnerGap !== undefined) setMaxPartnerGap(parsed.maxPartnerGap);
-      } catch (err) {
-        console.error('Failed to parse local storage state');
-      }
-    }
-    setLoaded(true);
-  }, []);
+  // LocalStorage Persistence - Now Session Specific (handled in onSelectTournament)
 
   useEffect(() => {
-    if (loaded) {
-      localStorage.setItem('pickleballState', JSON.stringify({
+    if (loaded && activeSession) {
+      localStorage.setItem(`pad_session_${activeSession.id}`, JSON.stringify({
         players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap
       }));
     }
-  }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, loaded]);
+  }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, loaded, activeSession]);
 
   useEffect(() => {
     // Check if we are in a dedicated TV window
@@ -383,7 +363,7 @@ function App() {
     setCurrentRoundResults([]);
     setRoundNumber(1);
     setTargetRounds('');
-    localStorage.removeItem('pickleballState');
+    // We do NOT clear the local storage here, so that if they return to this session, the roster/settings remain.
   };
 
   if (authLoading) return <div style={{color:'white', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Verifying Session...</div>;
@@ -409,7 +389,27 @@ function App() {
         setTargetRounds('');
         localStorage.removeItem('pickleballState');
       } else {
-        // Existing session - attempt to load data
+        // Try to load from LocalStorage first (preserves roster, settings, unsaved matches)
+        const saved = localStorage.getItem(`pad_session_${s.id}`);
+        let localData = null;
+        if (saved) {
+          try {
+            localData = JSON.parse(saved);
+            setPlayers(localData.players || []);
+            setCourts(localData.courts || '');
+            setMatrix(localData.matrix || {});
+            setResults(localData.results || []);
+            setCurrentRoundResults(localData.currentRoundResults || []);
+            setRoundNumber(localData.roundNumber || 1);
+            setIsEndlessMode(localData.isEndlessMode ?? true);
+            setTargetRounds(localData.targetRounds || '');
+            setMaxPartnerGap(localData.maxPartnerGap || 2);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
+        // Fetch cloud matches to ensure we have the latest
         const matches = await getSessionMatches(s.id);
         if (matches && matches.length > 0) {
           const formatted = matches.map((m: any) => ({
@@ -422,30 +422,45 @@ function App() {
             isSaved: m.is_saved
           }));
 
-          setCurrentRoundResults(formatted);
-          const saved = formatted.filter((f: any) => f.isSaved);
-          setResults(saved);
-          
-          let mtrx = {};
-          saved.forEach((s: any) => {
-            mtrx = updateMatrixWithResult(mtrx, s.teamA, s.teamB);
-          });
-          setMatrix(mtrx);
-
-          const maxRound = formatted.reduce((max: number, m: any) => Math.max(max, m.round), 0);
-          setRoundNumber(maxRound + 1);
-
-          const participantMap = new Map<string, Player>();
-          formatted.forEach((m: any) => {
-            [...m.teamA, ...m.teamB].forEach(p => {
-              if (!participantMap.has(p.id)) participantMap.set(p.id, p);
+          // If no local data exists, rebuild state entirely from cloud matches
+          if (!localData) {
+            setCurrentRoundResults(formatted.filter((m: any) => !m.isSaved));
+            const savedMatches = formatted.filter((f: any) => f.isSaved);
+            setResults(savedMatches);
+            
+            let mtrx = {};
+            savedMatches.forEach((matchResult: any) => {
+              mtrx = updateMatrixWithResult(mtrx, matchResult.teamA, matchResult.teamB);
             });
-          });
-          if (participantMap.size > 0) {
-            setPlayers(Array.from(participantMap.values()));
+            setMatrix(mtrx);
+
+            const maxRound = formatted.reduce((max: number, m: any) => Math.max(max, m.round), 0);
+            setRoundNumber(maxRound + 1);
+
+            const participantMap = new Map<string, Player>();
+            formatted.forEach((m: any) => {
+              [...m.teamA, ...m.teamB].forEach(p => {
+                if (!participantMap.has(p.id)) participantMap.set(p.id, p);
+              });
+            });
+            if (participantMap.size > 0) {
+              setPlayers(Array.from(participantMap.values()));
+            }
           }
+        } else if (!localData) {
+           // No cloud matches and no local data. Reset to defaults.
+           setPlayers([]);
+           setCourts('');
+           setMatrix({});
+           setResults([]);
+           setCurrentRoundResults([]);
+           setRoundNumber(1);
+           setTargetRounds('');
+           setMaxPartnerGap(2);
+           setIsEndlessMode(true);
         }
       }
+
       setLoaded(true);
     }} />;
   }
