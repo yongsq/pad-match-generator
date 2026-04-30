@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, UserPlus, Trash2, Link, Hash } from 'lucide-react';
+import { Users, UserPlus, Trash2, Link, Hash, AlertCircle } from 'lucide-react';
 import type { Player } from '../lib/matchLogic';
 
 interface PlayerRosterProps {
@@ -61,7 +61,7 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
                  <th>DUPR</th>
                 <th title="DUPR ID for bulk upload">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Hash size={14} /> ID
+                    <Hash size={14} /> ID (6-char)
                   </div>
                 </th>
                 <th style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -75,98 +75,93 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
               </tr>
             </thead>
             <tbody>
-              {players.map(p => (
-                <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.6 }}>
-                  <td style={{ fontWeight: 500 }}>{p.name}</td>
-                  <td>
-                    <input 
-                      type="number" 
-                      className="input" 
-                      style={{ width: '70px', padding: '0.25rem', height: '30px' }}
-                      value={p.dupr}
-                      onChange={e => updatePlayer(p.id, { dupr: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                     />
-                  </td>
-                  <td>
-                    <input 
-                      className="input" 
-                      style={{ width: '90px', padding: '0.25rem', height: '30px', fontSize: '0.8rem' }}
-                      placeholder="Optional"
-                      value={p.duprId || ''}
-                      onChange={e => updatePlayer(p.id, { duprId: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <select 
-                      className="input"
-                      tabIndex={-1}
-                      style={{ width: '120px', padding: '0.2rem', height: '30px', fontSize: '0.8rem' }}
-                      value={p.fixedPartnerId || ''}
-                      onChange={e => {
-                        const newPartnerId = e.target.value;
-                        const oldPartnerId = p.fixedPartnerId;
-                        
-                        // 1. Clear old partnership if it existed
-                        if (oldPartnerId) {
-                          updatePlayer(oldPartnerId, { fixedPartnerId: undefined });
+              {players.map(p => {
+                const isIdIncomplete = p.duprId && p.duprId.length > 0 && p.duprId.length < 6;
+                
+                return (
+                  <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.6 }}>
+                    <td style={{ fontWeight: 500 }}>{p.name}</td>
+                    <td>
+                      <input 
+                        type="number" 
+                        className="input" 
+                        style={{ width: '70px', padding: '0.25rem', height: '30px' }}
+                        value={p.dupr}
+                        onChange={e => updatePlayer(p.id, { dupr: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                       />
+                    </td>
+                    <td>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input 
+                          className="input" 
+                          style={{ 
+                            width: '110px', 
+                            padding: '0.25rem', 
+                            height: '30px', 
+                            fontSize: '0.85rem',
+                            fontFamily: 'monospace',
+                            textAlign: 'center',
+                            border: isIdIncomplete ? '1px solid var(--danger-color)' : '1px solid rgba(255,255,255,0.1)',
+                            boxShadow: isIdIncomplete ? '0 0 5px rgba(255, 71, 87, 0.3)' : 'none'
+                          }}
+                          placeholder="6-CHAR"
+                          value={p.duprId || ''}
+                          maxLength={6}
+                          onChange={e => {
+                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                            updatePlayer(p.id, { duprId: val });
+                          }}
+                        />
+                        {isIdIncomplete && (
+                          <AlertCircle 
+                            size={14} 
+                            style={{ color: 'var(--danger-color)', marginLeft: '4px' }} 
+                            title="DUPR IDs are usually 6 characters"
+                          />
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <select 
+                        className="input"
+                        style={{ width: '140px', padding: '0.25rem', height: '30px', fontSize: '0.8rem' }}
+                        value={p.fixedPartnerId || ''}
+                        onChange={e => updatePlayer(p.id, { fixedPartnerId: e.target.value || undefined })}
+                      >
+                        <option value="">None</option>
+                        {players
+                          .filter(other => other.id !== p.id)
+                          .map(other => (
+                            <option key={other.id} value={other.id}>{other.name}</option>
+                          ))
                         }
-                        
-                        // 2. Set new partnership
-                        if (newPartnerId === '') {
-                          updatePlayer(p.id, { fixedPartnerId: undefined });
-                        } else {
-                          updatePlayer(p.id, { fixedPartnerId: newPartnerId });
-                        }
-                      }}
-                    >
-                      <option value="">None</option>
-                      {players
-                        .filter(other => {
-                          if (other.id.toLowerCase().trim() === p.id.toLowerCase().trim()) return false;
-                          if (!other.fixedPartnerId) return true;
-                          return other.fixedPartnerId.toLowerCase().trim() === p.id.toLowerCase().trim();
-                        })
-                        .map(other => (
-                          <option key={other.id} value={other.id}>{other.name}</option>
-                        ))
-                      }
-                    </select>
-                  </td>
-                  <td>
-                    <button 
-                      className={`status-badge ${p.isActive ? 'status-active' : 'status-inactive'}`}
-                      tabIndex={-1}
-                      style={{ border: 'none', cursor: 'pointer' }}
-                      onClick={() => updatePlayer(p.id, { isActive: !p.isActive })}
-                    >
-                      {p.isActive ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
-                  <td>{p.gamesPlayed}</td>
-                  <td>{p.consecutiveSitOuts}</td>
-                  <td style={{ width: '40px' }}>
-                    <button 
-                      title="Remove player"
-                      tabIndex={-1}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', opacity: 0.7 }}
-                      onClick={() => {
-                        if(confirm(`Remove ${p.name} from roster entirely?`)) {
-                          removePlayer(p.id);
-                        }
-                      }}
-                      onMouseOver={e => e.currentTarget.style.opacity = '1'}
-                      onMouseOut={e => e.currentTarget.style.opacity = '0.7'}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button 
+                        className={`badge ${p.isActive ? 'badge-success' : 'badge-danger'}`}
+                        onClick={() => updatePlayer(p.id, { isActive: !p.isActive })}
+                      >
+                        {p.isActive ? 'Active' : 'Out'}
+                      </button>
+                    </td>
+                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{p.gamesPlayed}</td>
+                    <td style={{ textAlign: 'center', opacity: 0.5 }}>{p.consecutiveSitOuts}</td>
+                    <td>
+                      <button className="btn btn-icon btn-ghost" onClick={() => removePlayer(p.id)} title="Remove player">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       ) : (
-        <p style={{ textAlign: 'center', opacity: 0.5, padding: '2rem 0' }}>No players loaded yet. Parse attendees above.</p>
+        <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>
+          No players added yet. Paste a list or add manually.
+        </div>
       )}
     </div>
   );

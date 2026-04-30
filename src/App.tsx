@@ -184,10 +184,15 @@ function App() {
       // Normal non-link updates
       const updatedPlayers = next.map(p => p.id.toLowerCase().trim() === targetId ? { ...p, ...partial } : p);
       
-      // Background Sync for normal updates (like DUPR or DUPR ID changes)
+      // Background Sync for normal updates (only sync valid 6-char IDs or clearing)
       if (session) {
         const target = updatedPlayers.find(p => p.id.toLowerCase().trim() === targetId);
-        if (target) syncToMasterRoster(target);
+        if (target) {
+          const idLen = target.duprId?.length || 0;
+          if (idLen === 0 || idLen === 6) {
+            syncToMasterRoster(target);
+          }
+        }
       }
 
       return updatedPlayers;
