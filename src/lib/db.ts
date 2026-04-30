@@ -89,9 +89,12 @@ export async function getTournaments(): Promise<TournamentSession[]> {
   return data as TournamentSession[];
 }
 
-export async function saveMatch(tournamentId: string, match: any) {
+export async function saveMatch(tournamentId: string, match: any): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) {
+    alert("Authentication Error: You are not logged in. Cannot save match.");
+    return false;
+  }
 
   const { error } = await supabase
     .from('match_history')
@@ -109,7 +112,12 @@ export async function saveMatch(tournamentId: string, match: any) {
       onConflict: 'tournament_id,round,court'
     });
 
-  if (error) console.error('Error saving match:', error.message);
+  if (error) {
+    console.error('Error saving match:', error.message);
+    alert(`CRITICAL DATABASE ERROR!\n\nYour match WAS NOT SAVED to the cloud.\nError: ${error.message}\n\nPlease take a screenshot of your screen to preserve scores. Do not close the session.`);
+    return false;
+  }
+  return true;
 }
 
 export async function getSessionMatches(tournamentId: string) {
