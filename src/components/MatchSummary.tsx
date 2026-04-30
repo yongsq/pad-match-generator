@@ -123,16 +123,16 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({ results, sessionTitl
                       <span style={{ fontWeight: 800 }}>{p.wins}w <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>({p.pointDiff > 0 ? `+${p.pointDiff}` : p.pointDiff})</span></span>
                     </div>
                   )} />
-                  <LeaderboardCol title="By Points" subtitle="Total Score" data={leaderboards.points} renderRow={(p, i) => (
-                    <div key={p.id} className="mini-row">
-                      <span>{i+1}. {p.name}</span>
-                      <span style={{ fontWeight: 800 }}>{p.pointsFor} <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>pts</span></span>
-                    </div>
-                  )} />
                   <LeaderboardCol title="By Win %" subtitle="Efficiency" data={leaderboards.winRate} renderRow={(p, i) => (
                     <div key={p.id} className="mini-row">
                       <span>{i+1}. {p.name}</span>
                       <span style={{ fontWeight: 800 }}>{p.winPercentage.toFixed(1)}%</span>
+                    </div>
+                  )} />
+                  <LeaderboardCol title="By Points" subtitle="Total Score" data={leaderboards.points} renderRow={(p, i) => (
+                    <div key={p.id} className="mini-row">
+                      <span>{i+1}. {p.name}</span>
+                      <span style={{ fontWeight: 800 }}>{p.pointsFor} <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>pts</span></span>
                     </div>
                   )} />
                   <LeaderboardCol title="By Point %" subtitle="Dominance" data={leaderboards.pointRate} renderRow={(p, i) => (
