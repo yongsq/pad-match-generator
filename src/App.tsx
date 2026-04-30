@@ -6,6 +6,7 @@ import { Controls } from './components/Controls';
 import { PlayerRoster } from './components/PlayerRoster';
 import { CurrentRound } from './components/CurrentRound';
 import { ResultsLog } from './components/ResultsLog';
+import { MatchSummary } from './components/MatchSummary';
 
 import { BookOpen, Target, AlertTriangle, ChevronDown, ChevronUp, LogOut, User, RefreshCw, LayoutGrid } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
@@ -533,6 +534,11 @@ function App() {
         hasPlayers={players.length > 0}
       />
       
+      <MatchSummary 
+        results={results}
+        sessionTitle={activeSession?.name}
+      />
+
       <ResultsLog 
             results={results} 
             sessionTitle={activeSession?.name}
