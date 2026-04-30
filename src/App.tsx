@@ -534,15 +534,15 @@ function App() {
         hasPlayers={players.length > 0}
       />
       
+      <ResultsLog 
+        results={results} 
+        sessionTitle={activeSession?.name}
+      />
+
       <MatchSummary 
         results={results}
         sessionTitle={activeSession?.name}
       />
-
-      <ResultsLog 
-            results={results} 
-            sessionTitle={activeSession?.name}
-          />
 
       {/* Sync Status Indicator */}
       <div className="sync-status">
