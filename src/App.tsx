@@ -399,6 +399,16 @@ function App() {
         if (participantMap.size > 0) {
           setPlayers(Array.from(participantMap.values()));
         }
+      } else {
+        // Brand new session - clear ALL previous states
+        setPlayers([]);
+        setCourts('');
+        setMatrix({});
+        setResults([]);
+        setCurrentRoundResults([]);
+        setRoundNumber(1);
+        setTargetRounds('');
+        localStorage.removeItem('pickleballState');
       }
       setLoaded(true);
     }} />;

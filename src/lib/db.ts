@@ -123,3 +123,13 @@ export async function getSessionMatches(tournamentId: string) {
   if (error) return [];
   return data;
 }
+
+export async function deleteTournament(id: string) {
+  const { error } = await supabase
+    .from('tournaments')
+    .delete()
+    .eq('id', id);
+
+  if (error) console.error('Error deleting tournament:', error.message);
+}
+
