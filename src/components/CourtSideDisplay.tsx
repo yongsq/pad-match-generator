@@ -110,27 +110,25 @@ export const CourtSideDisplay: React.FC = () => {
                     COURT {m.court}
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1.2rem' }}>
                     <div style={{ 
-                      fontSize: '2.2rem', 
+                      fontSize: 'clamp(1.2rem, 4vw, 2.2rem)', 
                       fontWeight: 900, 
                       lineHeight: 1.1, 
                       color: '#39ff14',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word'
                     }}>
                       {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
                     </div>
-                    <div style={{ height: '2px', background: 'rgba(57, 255, 20, 0.2)', width: '40px' }} />
+                    <div style={{ height: '2px', background: 'rgba(57, 255, 20, 0.2)', width: '60px' }} />
                     <div style={{ 
-                      fontSize: '2.2rem', 
+                      fontSize: 'clamp(1.2rem, 4vw, 2.2rem)', 
                       fontWeight: 900, 
                       lineHeight: 1.1, 
                       color: '#39ff14',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word'
                     }}>
                       {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
                     </div>
