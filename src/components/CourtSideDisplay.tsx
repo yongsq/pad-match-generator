@@ -13,13 +13,10 @@ export const CourtSideDisplay: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    // Listen for updates from the main window
     const channel = new BroadcastChannel('pad_tv_channel');
     channel.onmessage = (event) => {
       setData(event.data);
     };
-
-    // Request initial data
     channel.postMessage({ type: 'REQUEST_INITIAL_DATA' });
 
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -35,7 +32,6 @@ export const CourtSideDisplay: React.FC = () => {
         <div style={{ textAlign: 'center' }}>
           <div className="animate-spin" style={{ marginBottom: '1rem' }}><Timer size={48} /></div>
           <h1>Waiting for Tournament Data...</h1>
-          <p style={{ opacity: 0.5 }}>Please keep the main dashboard open.</p>
         </div>
       </div>
     );
@@ -51,86 +47,85 @@ export const CourtSideDisplay: React.FC = () => {
       background: '#000',
       display: 'flex',
       flexDirection: 'column',
-      padding: '1.5vw',
+      padding: '2vw',
       color: 'white',
       fontFamily: "'Inter', sans-serif",
       overflow: 'hidden'
     }}>
       {/* GLOBAL HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2vh', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1vh' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ background: 'var(--accent-color)', color: 'black', padding: '0.2rem 1.2rem', borderRadius: '4px', fontWeight: 900, fontSize: '1.8rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4vh', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2vh' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          <div style={{ background: '#39ff14', color: 'black', padding: '0.4rem 1.5rem', borderRadius: '4px', fontWeight: 900, fontSize: '2.5rem', boxShadow: '0 0 20px rgba(57, 255, 20, 0.5)' }}>
             PAD LIVE
           </div>
-          <h1 style={{ margin: 0, fontSize: '2.2rem', fontWeight: 900 }}>{data.sessionTitle}</h1>
+          <h1 style={{ margin: 0, fontSize: '3rem', fontWeight: 900, letterSpacing: '-0.02em' }}>{data.sessionTitle}</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', opacity: 0.8, fontSize: '1.5rem', fontWeight: 700 }}>
-           <Clock size={24} />
-           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: 0.8, fontSize: '2rem', fontWeight: 800 }}>
+           <Clock size={32} />
+           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2vw', flex: 1, overflow: 'hidden' }}>
+      {/* FULL WIDTH GRID */}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <h2 style={{ fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5em', color: '#39ff14', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Zap size={24} fill="#39ff14" /> ROUND {data.roundNumber} • MATCHES IN PROGRESS
+        </h2>
         
-        {/* LEFT COLUMN: CURRENT ROUND */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '0.3em', color: 'var(--accent-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Zap size={20} fill="var(--accent-color)" /> LIVE ON COURT • ROUND {data.roundNumber}
-          </h2>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: data.currentMatches.length <= 3 ? '1fr' : '1fr 1fr',
-            gap: '1.5vw',
-            alignContent: 'start'
-          }}>
-            {data.currentMatches.map((m, idx) => (
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+          gap: '2.5vw',
+          alignContent: 'start',
+          flex: 1
+        }}>
+          {data.currentMatches.map((m, idx) => {
+            const isFeatured = m.court === 1 || m.court === 2;
+            
+            return (
               <div key={idx} style={{ 
-                background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
-                borderRadius: '1.2rem',
-                padding: '2rem',
-                border: '1px solid rgba(255,255,255,0.05)',
-                position: 'relative'
+                background: isFeatured 
+                  ? 'rgba(57, 255, 20, 0.05)' 
+                  : 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
+                borderRadius: '2rem',
+                padding: isFeatured ? '3.5rem' : '2.5rem',
+                border: isFeatured ? '3px solid #39ff14' : '2px solid rgba(255,255,255,0.05)',
+                position: 'relative',
+                boxShadow: isFeatured ? '0 0 40px rgba(57, 255, 20, 0.2)' : 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease'
               }}>
-                <div style={{ position: 'absolute', top: '1rem', right: '1.5rem', fontSize: '0.8rem', fontWeight: 800, opacity: 0.3 }}>COURT {m.court}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}</div>
-                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}</div>
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '1.5rem', 
+                  left: '2rem', 
+                  fontSize: isFeatured ? '1.5rem' : '1rem', 
+                  fontWeight: 900, 
+                  color: isFeatured ? '#39ff14' : 'rgba(255,255,255,0.3)',
+                  letterSpacing: '0.2em'
+                }}>
+                  COURT {m.court}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* RIGHT COLUMN: NEXT ROUND PREVIEW */}
-        <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '2vw', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '0.3em', opacity: 0.5, marginBottom: '1.5rem' }}>
-            COMING UP NEXT
-          </h2>
-          {data.nextMatches.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {data.nextMatches.map((m, idx) => (
-                <div key={idx} style={{ background: 'rgba(255,255,255,0.03)', padding: '1.2rem', borderRadius: '0.8rem', border: '1px solid rgba(255,255,255,0.03)' }}>
-                  <div style={{ fontSize: '0.7rem', opacity: 0.3, marginBottom: '0.4rem' }}>COURT {m.court}</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 600, opacity: 0.8 }}>
-                    {m.teamA[0].name} / {m.teamA[1]?.name} vs {m.teamB[0].name} / {m.teamB[1]?.name}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: isFeatured ? '2rem' : '1.5rem', marginTop: '1.5rem' }}>
+                  <div style={{ fontSize: isFeatured ? '3.5rem' : '2.5rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
+                    {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
+                  </div>
+                  <div style={{ height: '2px', background: isFeatured ? 'rgba(57, 255, 20, 0.2)' : 'rgba(255,255,255,0.1)', width: '100px' }} />
+                  <div style={{ fontSize: isFeatured ? '3.5rem' : '2.5rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
+                    {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '1rem' }}>
-              <div style={{ textAlign: 'center' }}>
-                <p>Generating Next Round...</p>
               </div>
-            </div>
-          )}
+            );
+          })}
         </div>
-
       </div>
 
-      <footer style={{ marginTop: '2vh', textAlign: 'center', opacity: 0.2, fontSize: '0.8rem' }}>
-        AUTOMATIC REAL-TIME UPDATES ENABLED • PAD ACADEMY MATCH CENTER
+      <footer style={{ marginTop: '2vh', textAlign: 'center', opacity: 0.1, fontSize: '0.9rem' }}>
+        PAD ACADEMY BROADCAST SYSTEM • ALL COURTS ACTIVE
       </footer>
     </div>
   );
