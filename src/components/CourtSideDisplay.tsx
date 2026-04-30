@@ -81,8 +81,9 @@ export const CourtSideDisplay: React.FC = () => {
             </h2>
             
             <div style={{ 
-              display: 'flex',
-              gap: '2vw',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '1.5vw',
               alignItems: 'stretch'
             }}>
               {matches.map((m, idx) => {
@@ -90,24 +91,25 @@ export const CourtSideDisplay: React.FC = () => {
                 
                 return (
                   <div key={idx} style={{ 
-                    flex: isFeatured ? 1.5 : 1,
+                    gridColumn: isFeatured ? 'span 2' : 'span 1',
                     background: isFeatured 
                       ? 'rgba(57, 255, 20, 0.05)' 
                       : 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
-                    borderRadius: '1.5rem',
-                    padding: isFeatured ? '2.5rem' : '1.5rem',
+                    borderRadius: '1.2rem',
+                    padding: isFeatured ? '2rem' : '1.2rem',
                     border: isFeatured ? '3px solid #39ff14' : '2px solid rgba(255,255,255,0.05)',
                     position: 'relative',
-                    boxShadow: isFeatured ? '0 0 30px rgba(57, 255, 20, 0.2)' : 'none',
+                    boxShadow: isFeatured ? '0 0 30px rgba(57, 255, 20, 0.15)' : 'none',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    minHeight: '180px'
                   }}>
                     <div style={{ 
                       position: 'absolute', 
-                      top: '1rem', 
-                      left: '1.5rem', 
-                      fontSize: isFeatured ? '1.2rem' : '0.8rem', 
+                      top: '0.8rem', 
+                      left: '1.2rem', 
+                      fontSize: isFeatured ? '1rem' : '0.7rem', 
                       fontWeight: 900, 
                       color: isFeatured ? '#39ff14' : 'rgba(255,255,255,0.3)',
                       letterSpacing: '0.2em'
@@ -115,12 +117,28 @@ export const CourtSideDisplay: React.FC = () => {
                       COURT {m.court}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: isFeatured ? '1rem' : '0.5rem', marginTop: '1.5rem' }}>
-                      <div style={{ fontSize: isFeatured ? '2.5rem' : '1.8rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: isFeatured ? '0.8rem' : '0.4rem', marginTop: '1rem' }}>
+                      <div style={{ 
+                        fontSize: isFeatured ? '2.8rem' : '1.4rem', 
+                        fontWeight: 900, 
+                        lineHeight: 1.1, 
+                        color: isFeatured ? '#39ff14' : '#fff',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
                         {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
                       </div>
-                      <div style={{ height: '2px', background: isFeatured ? 'rgba(57, 255, 20, 0.2)' : 'rgba(255,255,255,0.1)', width: '60px' }} />
-                      <div style={{ fontSize: isFeatured ? '2.5rem' : '1.8rem', fontWeight: 900, lineHeight: 1.1, color: isFeatured ? '#39ff14' : '#fff' }}>
+                      <div style={{ height: '2px', background: isFeatured ? 'rgba(57, 255, 20, 0.2)' : 'rgba(255,255,255,0.1)', width: '40px' }} />
+                      <div style={{ 
+                        fontSize: isFeatured ? '2.8rem' : '1.4rem', 
+                        fontWeight: 900, 
+                        lineHeight: 1.1, 
+                        color: isFeatured ? '#39ff14' : '#fff',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
                         {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
                       </div>
                     </div>
