@@ -58,7 +58,7 @@ export async function searchMasterRoster(query: string): Promise<MasterPlayer[]>
 export interface TournamentSession {
   id: string;
   name: string;
-  date: string;
+  created_at: string;
   status: 'active' | 'archived';
 }
 

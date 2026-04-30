@@ -101,7 +101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectTournament }) => {
                       <Calendar size={18} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600 }}>{s.title}</div>
+                      <div style={{ fontWeight: 600 }}>{s.name}</div>
                       <div style={{ fontSize: '0.75rem', opacity: 0.4 }}>
                         {new Date(s.created_at).toLocaleDateString()}
                       </div>
