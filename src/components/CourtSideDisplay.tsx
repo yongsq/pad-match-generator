@@ -82,67 +82,61 @@ export const CourtSideDisplay: React.FC = () => {
             
             <div style={{ 
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
               gap: '1.5vw',
               alignItems: 'stretch'
             }}>
-              {matches.map((m, idx) => {
-                const isFeatured = m.court === 1 || m.court === 2;
-                
-                return (
-                  <div key={idx} style={{ 
-                    gridColumn: isFeatured ? 'span 2' : 'span 1',
-                    background: 'rgba(57, 255, 20, 0.05)',
-                    borderRadius: '1.2rem',
-                    padding: isFeatured ? '2rem' : '1.2rem',
-                    border: '2px solid #39ff14',
-                    position: 'relative',
-                    boxShadow: isFeatured ? '0 0 30px rgba(57, 255, 20, 0.15)' : 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    minHeight: isFeatured ? '180px' : '120px'
+              {matches.map((m, idx) => (
+                <div key={idx} style={{ 
+                  background: 'rgba(57, 255, 20, 0.05)',
+                  borderRadius: '1rem',
+                  padding: '1.8rem',
+                  border: '2px solid #39ff14',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  minHeight: '140px'
+                }}>
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '0.8rem', 
+                    left: '1.2rem', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 900, 
+                    color: '#39ff14',
+                    letterSpacing: '0.2em'
                   }}>
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: '0.8rem', 
-                      left: '1.2rem', 
-                      fontSize: isFeatured ? '1rem' : '0.7rem', 
-                      fontWeight: 900, 
-                      color: '#39ff14',
-                      letterSpacing: '0.2em'
-                    }}>
-                      COURT {m.court}
-                    </div>
+                    COURT {m.court}
+                  </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: isFeatured ? '0.8rem' : '0.4rem', marginTop: '1rem' }}>
-                      <div style={{ 
-                        fontSize: isFeatured ? '2.8rem' : '1.6rem', 
-                        fontWeight: 900, 
-                        lineHeight: 1.1, 
-                        color: '#39ff14',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
-                      </div>
-                      <div style={{ height: '2px', background: 'rgba(57, 255, 20, 0.2)', width: '40px' }} />
-                      <div style={{ 
-                        fontSize: isFeatured ? '2.8rem' : '1.6rem', 
-                        fontWeight: 900, 
-                        lineHeight: 1.1, 
-                        color: '#39ff14',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                    <div style={{ 
+                      fontSize: '2.2rem', 
+                      fontWeight: 900, 
+                      lineHeight: 1.1, 
+                      color: '#39ff14',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
+                    </div>
+                    <div style={{ height: '2px', background: 'rgba(57, 255, 20, 0.2)', width: '40px' }} />
+                    <div style={{ 
+                      fontSize: '2.2rem', 
+                      fontWeight: 900, 
+                      lineHeight: 1.1, 
+                      color: '#39ff14',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         ))}
