@@ -7,8 +7,9 @@ import { PlayerRoster } from './components/PlayerRoster';
 import { CurrentRound } from './components/CurrentRound';
 import { ResultsLog } from './components/ResultsLog';
 import { MatchSummary } from './components/MatchSummary';
+import { CourtSideDisplay } from './components/CourtSideDisplay';
 
-import { BookOpen, Target, AlertTriangle, ChevronDown, ChevronUp, LogOut, User, RefreshCw, LayoutGrid } from 'lucide-react';
+import { BookOpen, Target, AlertTriangle, ChevronDown, ChevronUp, LogOut, User, RefreshCw, LayoutGrid, Monitor } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
@@ -28,6 +29,7 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [showManifesto, setShowManifesto] = useState(false);
   const [showLimitations, setShowLimitations] = useState(false);
+  const [showTV, setShowTV] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [activeSession, setActiveSession] = useState<TournamentSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -424,13 +426,24 @@ function App() {
   return (
     <div className="app-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', alignItems: 'center' }}>
-        <button 
-          onClick={() => setActiveSession(null)}
-          className="btn"
-          style={{ background: 'rgba(255, 255, 255, 0.05)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          <LayoutGrid size={16} /> Dashboard
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            onClick={() => setActiveSession(null)}
+            className="btn"
+            style={{ background: 'rgba(255, 255, 255, 0.05)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <LayoutGrid size={16} /> Dashboard
+          </button>
+          {currentRoundResults.length > 0 && (
+            <button 
+              onClick={() => setShowTV(true)}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Monitor size={16} /> TV Mode
+            </button>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', opacity: 0.7 }}>
             <User size={14} /> {session.user.email}
@@ -534,6 +547,15 @@ function App() {
         hasPlayers={players.length > 0}
       />
       
+      {showTV && (
+        <CourtSideDisplay 
+          roundNumber={roundNumber - 1}
+          matches={currentRoundResults}
+          sessionTitle={activeSession?.name}
+          onClose={() => setShowTV(false)}
+        />
+      )}
+
       <ResultsLog 
         results={results} 
         sessionTitle={activeSession?.name}
