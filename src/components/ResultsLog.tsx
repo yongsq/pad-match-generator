@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, FileSpreadsheet, ScrollText } from 'lucide-react';
+import { FileSpreadsheet, ScrollText } from 'lucide-react';
 import type { MatchResult } from '../lib/matchLogic';
 
 interface ResultsLogProps {
