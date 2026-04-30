@@ -357,49 +357,11 @@ function App() {
   }
 
   if (!activeSession) {
-    return <Dashboard onSelectTournament={async (s) => {
+    return <Dashboard onSelectTournament={async (s, isNew) => {
       setActiveSession(s);
       setLoaded(false);
       
-      // Resume Logic: Fetch matches from cloud
-      const matches = await getSessionMatches(s.id);
-      if (matches && matches.length > 0) {
-        const formatted = matches.map((m: any) => ({
-          round: m.round,
-          court: m.court,
-          teamA: m.team_a,
-          teamB: m.team_b,
-          scoreA: m.score_a === null ? '' : m.score_a,
-          scoreB: m.score_b === null ? '' : m.score_b,
-          isSaved: m.is_saved
-        }));
-
-        setCurrentRoundResults(formatted);
-        
-        // Rebuild logs and matrix
-        const saved = formatted.filter((f: any) => f.isSaved);
-        setResults(saved);
-        
-        let mtrx = {};
-        saved.forEach((s: any) => {
-          mtrx = updateMatrixWithResult(mtrx, s.teamA, s.teamB);
-        });
-        setMatrix(mtrx);
-
-        const maxRound = formatted.reduce((max: number, m: any) => Math.max(max, m.round), 0);
-        setRoundNumber(maxRound + 1);
-
-        // Rebuild players list from participants in matches
-        const participantMap = new Map<string, Player>();
-        formatted.forEach((m: any) => {
-          [...m.teamA, ...m.teamB].forEach(p => {
-            if (!participantMap.has(p.id)) participantMap.set(p.id, p);
-          });
-        });
-        if (participantMap.size > 0) {
-          setPlayers(Array.from(participantMap.values()));
-        }
-      } else {
+      if (isNew) {
         // Brand new session - clear ALL previous states
         setPlayers([]);
         setCourts('');
@@ -409,6 +371,43 @@ function App() {
         setRoundNumber(1);
         setTargetRounds('');
         localStorage.removeItem('pickleballState');
+      } else {
+        // Existing session - attempt to load data
+        const matches = await getSessionMatches(s.id);
+        if (matches && matches.length > 0) {
+          const formatted = matches.map((m: any) => ({
+            round: m.round,
+            court: m.court,
+            teamA: m.team_a,
+            teamB: m.team_b,
+            scoreA: m.score_a === null ? '' : m.score_a,
+            scoreB: m.score_b === null ? '' : m.score_b,
+            isSaved: m.is_saved
+          }));
+
+          setCurrentRoundResults(formatted);
+          const saved = formatted.filter((f: any) => f.isSaved);
+          setResults(saved);
+          
+          let mtrx = {};
+          saved.forEach((s: any) => {
+            mtrx = updateMatrixWithResult(mtrx, s.teamA, s.teamB);
+          });
+          setMatrix(mtrx);
+
+          const maxRound = formatted.reduce((max: number, m: any) => Math.max(max, m.round), 0);
+          setRoundNumber(maxRound + 1);
+
+          const participantMap = new Map<string, Player>();
+          formatted.forEach((m: any) => {
+            [...m.teamA, ...m.teamB].forEach(p => {
+              if (!participantMap.has(p.id)) participantMap.set(p.id, p);
+            });
+          });
+          if (participantMap.size > 0) {
+            setPlayers(Array.from(participantMap.values()));
+          }
+        }
       }
       setLoaded(true);
     }} />;

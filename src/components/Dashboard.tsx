@@ -3,7 +3,7 @@ import { getTournaments, createTournament, deleteTournament, type TournamentSess
 import { Plus, Calendar, History, ChevronRight, Trash2 } from 'lucide-react';
 
 interface DashboardProps {
-  onSelectTournament: (session: TournamentSession) => void;
+  onSelectTournament: (session: TournamentSession, isNew?: boolean) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onSelectTournament }) => {
@@ -24,11 +24,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectTournament }) => {
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
     const session = await createTournament(newTitle.trim());
-    if (session) onSelectTournament(session);
+    if (session) onSelectTournament(session, true); // Mark as brand new
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Don't trigger the session selection
+    e.stopPropagation(); 
     if (confirm('Are you sure you want to delete this session forever?')) {
       await deleteTournament(id);
       loadSessions();
@@ -83,7 +83,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectTournament }) => {
                 <div 
                   key={s.id} 
                   className="session-card" 
-                  onClick={() => onSelectTournament(s)}
+                  onClick={() => onSelectTournament(s, false)}
                   style={{
                     padding: '1rem',
                     background: 'rgba(255,255,255,0.03)',
