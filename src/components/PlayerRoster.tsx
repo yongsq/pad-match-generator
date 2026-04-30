@@ -113,11 +113,12 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
                           }}
                         />
                         {isIdIncomplete && (
-                          <AlertCircle 
-                            size={14} 
-                            style={{ color: 'var(--danger-color)', marginLeft: '4px' }} 
-                            title="DUPR IDs are usually 6 characters"
-                          />
+                          <div title="DUPR IDs are usually 6 characters">
+                            <AlertCircle 
+                              size={14} 
+                              style={{ color: 'var(--danger-color)', marginLeft: '4px' }} 
+                            />
+                          </div>
                         )}
                       </div>
                     </td>
