@@ -29,7 +29,7 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [showManifesto, setShowManifesto] = useState(false);
   const [showLimitations, setShowLimitations] = useState(false);
-  const [showTV, setShowTV] = useState(false);
+  const [isTVWindow, setIsTVWindow] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [activeSession, setActiveSession] = useState<TournamentSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -90,6 +90,34 @@ function App() {
       }));
     }
   }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, loaded]);
+
+  useEffect(() => {
+    // Check if we are in a dedicated TV window
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tv') === '1') {
+      setIsTVWindow(true);
+      return;
+    }
+
+    const channel = new BroadcastChannel('pad_tv_channel');
+    
+    const sendUpdate = () => {
+      channel.postMessage({
+        currentMatches: currentRoundResults.filter(m => !m.isSaved),
+        nextMatches: [],
+        roundNumber: Math.max(1, roundNumber - 1),
+        sessionTitle: activeSession?.name || 'Tournament'
+      });
+    };
+
+    channel.onmessage = (e) => {
+      if (e.data.type === 'REQUEST_INITIAL_DATA') sendUpdate();
+    };
+
+    sendUpdate();
+
+    return () => channel.close();
+  }, [currentRoundResults, roundNumber, activeSession, loaded, isTVWindow]);
 
 
   // Controls Callbacks
@@ -423,6 +451,10 @@ function App() {
 
   if (!loaded) return <div style={{color:'white'}}>Loading...</div>;
 
+  if (isTVWindow) {
+    return <CourtSideDisplay />;
+  }
+
   return (
     <div className="app-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', alignItems: 'center' }}>
@@ -436,11 +468,11 @@ function App() {
           </button>
           {currentRoundResults.length > 0 && (
             <button 
-              onClick={() => setShowTV(true)}
+              onClick={() => window.open(window.location.origin + '?tv=1', 'PAD_TV', 'width=1200,height=800')}
               className="btn btn-secondary"
               style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <Monitor size={16} /> TV Mode
+              <Monitor size={16} /> Open TV View
             </button>
           )}
         </div>
@@ -547,14 +579,7 @@ function App() {
         hasPlayers={players.length > 0}
       />
       
-      {showTV && (
-        <CourtSideDisplay 
-          roundNumber={roundNumber - 1}
-          matches={currentRoundResults}
-          sessionTitle={activeSession?.name}
-          onClose={() => setShowTV(false)}
-        />
-      )}
+      {/* TV component handled via isTVWindow route */}
 
       <ResultsLog 
         results={results} 
