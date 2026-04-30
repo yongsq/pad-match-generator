@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FileSpreadsheet, ScrollText, Settings, ChevronDown, ChevronUp } from 'lucide-react';
-import type { MatchResult } from '../lib/matchLogic';
+import { FileSpreadsheet, ScrollText, Settings, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import type { MatchResult, Player } from '../lib/matchLogic';
+import { lookupMasterPlayers } from '../lib/db';
 
 interface ResultsLogProps {
   results: MatchResult[];
@@ -12,53 +13,79 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
   const [matchType, setMatchType] = useState<'D' | 'S'>('D');
   const [scoreType, setScoreType] = useState<'RALLY' | 'SIDEOUT'>('RALLY');
   const [customEvent, setCustomEvent] = useState(sessionTitle);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Sync customEvent when sessionTitle changes
   useEffect(() => {
     setCustomEvent(sessionTitle);
   }, [sessionTitle]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (results.length === 0) return;
+    setIsExporting(true);
 
-    const headers = [
-      'matchType', 'scoreType', 'event', 'date',
-      'playerA1', 'playerA1DuprId', 'playerA2', 'playerA2DuprId',
-      'playerB1', 'playerB1DuprId', 'playerB2', 'playerB2DuprId',
-      'teamAGame1', 'teamBGame1', 'teamAGame2', 'teamBGame2',
-      'teamAGame3', 'teamBGame3', 'teamAGame4', 'teamBGame4',
-      'teamAGame5', 'teamBGame5'
-    ];
+    try {
+      // 1. Get all unique player names from results
+      const namesSet = new Set<string>();
+      results.forEach(m => {
+        [...m.teamA, ...m.teamB].forEach(p => namesSet.add(p.name));
+      });
+      const names = Array.from(namesSet);
 
-    const today = new Date().toISOString().split('T')[0];
+      // 2. "Smart Healing": Fetch LATEST DUPR IDs from Master Roster to fix old truncated data
+      const masterData = await lookupMasterPlayers(names);
+      const idMap = new Map<string, string>();
+      masterData.forEach(m => {
+        if (m.dupr_id) idMap.set(m.name.toLowerCase().trim(), m.dupr_id);
+      });
 
-    const rows = results.map(m => {
-      const row = [
-        matchType,
-        scoreType,
-        customEvent,
-        today,
-        m.teamA[0].name, m.teamA[0].duprId || '',
-        m.teamA[1].name, m.teamA[1].duprId || '',
-        m.teamB[0].name, m.teamB[0].duprId || '',
-        m.teamB[1].name, m.teamB[1].duprId || '',
-        m.scoreA, m.scoreB,
-        '', '', '', '', '', '', '', '' // Games 2-5 empty
+      const headers = [
+        'matchType', 'scoreType', 'event', 'date',
+        'playerA1', 'playerA1DuprId', 'playerA2', 'playerA2DuprId',
+        'playerB1', 'playerB1DuprId', 'playerB2', 'playerB2DuprId',
+        'teamAGame1', 'teamBGame1', 'teamAGame2', 'teamBGame2',
+        'teamAGame3', 'teamBGame3', 'teamAGame4', 'teamBGame4',
+        'teamAGame5', 'teamBGame5'
       ];
-      return row.join(',');
-    });
 
-    const csvContent = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Reclub_Results_${customEvent.replace(/\s+/g, '_')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const today = new Date().toISOString().split('T')[0];
+
+      const rows = results.map(m => {
+        // Use the healed ID if available, otherwise fallback to whatever was in the match record
+        const getHealedId = (p: Player) => idMap.get(p.name.toLowerCase().trim()) || p.duprId || '';
+
+        const row = [
+          matchType,
+          scoreType,
+          customEvent,
+          today,
+          m.teamA[0].name, getHealedId(m.teamA[0]),
+          m.teamA[1].name, getHealedId(m.teamA[1]),
+          m.teamB[0].name, getHealedId(m.teamB[0]),
+          m.teamB[1].name, getHealedId(m.teamB[1]),
+          m.scoreA, m.scoreB,
+          '', '', '', '', '', '', '', '' 
+        ];
+        return row.join(',');
+      });
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Reclub_Results_${customEvent.replace(/\s+/g, '_')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to export CSV. Please check your connection.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (results.length === 0) return null;
@@ -81,11 +108,12 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
           </button>
           <button 
             onClick={handleExportCSV}
+            disabled={isExporting}
             className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', minWidth: '130px' }}
           >
-            <FileSpreadsheet size={18} />
-            Export CSV
+            {isExporting ? <Loader2 className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />}
+            {isExporting ? 'Healing IDs...' : 'Export CSV'}
           </button>
         </div>
       </div>
