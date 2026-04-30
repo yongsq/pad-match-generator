@@ -117,10 +117,10 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({ results, sessionTitl
                 </header>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                  <LeaderboardCol title="By Wins" subtitle="Wins & Diff" data={leaderboards.wins} renderRow={(p, i) => (
+                  <LeaderboardCol title="By Wins" subtitle="Wins / Matches" data={leaderboards.wins} renderRow={(p, i) => (
                     <div key={p.id} className="mini-row">
                       <span>{i+1}. {p.name}</span>
-                      <span style={{ fontWeight: 800 }}>{p.wins}w <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>({p.pointDiff > 0 ? `+${p.pointDiff}` : p.pointDiff})</span></span>
+                      <span style={{ fontWeight: 800 }}>{p.wins} <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>/ {p.gamesPlayed}</span></span>
                     </div>
                   )} />
                   <LeaderboardCol title="By Win %" subtitle="Efficiency" data={leaderboards.winRate} renderRow={(p, i) => (
@@ -129,10 +129,10 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({ results, sessionTitl
                       <span style={{ fontWeight: 800 }}>{p.winPercentage.toFixed(1)}%</span>
                     </div>
                   )} />
-                  <LeaderboardCol title="By Points" subtitle="Total Score" data={leaderboards.points} renderRow={(p, i) => (
+                  <LeaderboardCol title="By Points" subtitle="Points / Possible" data={leaderboards.points} renderRow={(p, i) => (
                     <div key={p.id} className="mini-row">
                       <span>{i+1}. {p.name}</span>
-                      <span style={{ fontWeight: 800 }}>{p.pointsFor} <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>pts</span></span>
+                      <span style={{ fontWeight: 800 }}>{p.pointsFor} <span style={{ opacity: 0.4, fontSize: '0.6rem' }}>/ {p.pointsPossible}</span></span>
                     </div>
                   )} />
                   <LeaderboardCol title="By Point %" subtitle="Dominance" data={leaderboards.pointRate} renderRow={(p, i) => (
