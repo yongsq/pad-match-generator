@@ -348,8 +348,13 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
 
   // Helper to check if two players are a fixed pair
   const isFixedPair = (pA: Player, pB: Player) => {
-    return pA.fixedPartnerId?.trim().toLowerCase() === pB.id.trim().toLowerCase() ||
-           pB.fixedPartnerId?.trim().toLowerCase() === pA.id.trim().toLowerCase();
+    const fixedA = (pA.fixedPartnerId || '').trim().toLowerCase();
+    const fixedB = (pB.fixedPartnerId || '').trim().toLowerCase();
+    const idA = (pA.id || '').trim().toLowerCase();
+    const idB = (pB.id || '').trim().toLowerCase();
+    
+    if (!fixedA && !fixedB) return false;
+    return (fixedA === idB) || (fixedB === idA);
   };
 
   // 2. Partner Variety (Matrix) - HIGH PRIORITY
