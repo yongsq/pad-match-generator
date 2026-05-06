@@ -442,10 +442,11 @@ function App() {
           }));
 
           const cloudSavedMatches = formatted.filter((f: any) => f.isSaved);
+          const cloudUnsavedMatches = formatted.filter((f: any) => !f.isSaved);
 
           if (!localData) {
             // No local data, rebuild entirely from cloud
-            setCurrentRoundResults(formatted.filter((m: any) => !m.isSaved));
+            setCurrentRoundResults(cloudUnsavedMatches);
             setResults(cloudSavedMatches);
             
             let mtrx = {};
@@ -494,15 +495,24 @@ function App() {
                  mtrx = updateMatrixWithResult(mtrx, r.teamA, r.teamB);
                });
                setMatrix(mtrx);
+            }
 
-               // Update round number if cloud has moved us forward
-               const maxRound = updatedResults.reduce((max: number, m: any) => Math.max(max, m.round), 0);
-               const currentLocalRound = localData.roundNumber || 1;
-               if (maxRound >= currentLocalRound) {
-                 setRoundNumber(maxRound + 1);
-                 setCurrentRoundResults([]); // Wipe stale unsaved local round
-               }
+            // Sync Unsaved Matches from Cloud
+            const maxSavedRound = updatedResults.reduce((max: number, m: any) => Math.max(max, m.round), 0);
+            if (cloudUnsavedMatches.length > 0) {
+               setCurrentRoundResults(cloudUnsavedMatches);
+               setRoundNumber(cloudUnsavedMatches[0].round);
+            } else if (maxSavedRound >= (localData.roundNumber || 1)) {
+               // Cloud has advanced the round and there are no unsaved matches
+               setCurrentRoundResults([]);
+               setRoundNumber(maxSavedRound + 1);
+            } else if (maxSavedRound === (localData.roundNumber || 1) - 1 && localData.currentRoundResults?.length > 0) {
+               // Local thinks there's an unsaved round, but cloud says it's deleted
+               setCurrentRoundResults([]);
+               setRoundNumber(maxSavedRound + 1);
+            }
 
+            if (changed || cloudUnsavedMatches.length > 0) {
                // Merge any new players from cloud that might be missing locally
                const participantMap = new Map<string, Player>();
                if (localData.players) {
@@ -515,6 +525,8 @@ function App() {
                });
                setPlayers(Array.from(participantMap.values()));
             }
+
+
           }
         } else if (!localData) {
            // No cloud matches and no local data. Reset to defaults.
