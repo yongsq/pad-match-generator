@@ -422,14 +422,15 @@ function App() {
             isSaved: m.is_saved
           }));
 
-          // If no local data exists, rebuild state entirely from cloud matches
+          const cloudSavedMatches = formatted.filter((f: any) => f.isSaved);
+
           if (!localData) {
+            // No local data, rebuild entirely from cloud
             setCurrentRoundResults(formatted.filter((m: any) => !m.isSaved));
-            const savedMatches = formatted.filter((f: any) => f.isSaved);
-            setResults(savedMatches);
+            setResults(cloudSavedMatches);
             
             let mtrx = {};
-            savedMatches.forEach((matchResult: any) => {
+            cloudSavedMatches.forEach((matchResult: any) => {
               mtrx = updateMatrixWithResult(mtrx, matchResult.teamA, matchResult.teamB);
             });
             setMatrix(mtrx);
@@ -445,6 +446,55 @@ function App() {
             });
             if (participantMap.size > 0) {
               setPlayers(Array.from(participantMap.values()));
+            }
+          } else {
+            // Smart Merge: We have local data, but cloud might have new matches from another device
+            let updatedResults = [...(localData.results || [])];
+            let changed = false;
+
+            cloudSavedMatches.forEach((cloudMatch: any) => {
+              const existingIdx = updatedResults.findIndex(r => r.round === cloudMatch.round && r.court === cloudMatch.court);
+              if (existingIdx >= 0) {
+                 // Check if cloud score differs from local (e.g. edited on another device)
+                 if (updatedResults[existingIdx].scoreA !== cloudMatch.scoreA || updatedResults[existingIdx].scoreB !== cloudMatch.scoreB) {
+                    updatedResults[existingIdx] = cloudMatch;
+                    changed = true;
+                 }
+              } else {
+                 // Cloud has a match that local doesn't have
+                 updatedResults.push(cloudMatch);
+                 changed = true;
+              }
+            });
+
+            if (changed) {
+               setResults(updatedResults);
+               // Rebuild matrix
+               let mtrx = {};
+               updatedResults.forEach(r => {
+                 mtrx = updateMatrixWithResult(mtrx, r.teamA, r.teamB);
+               });
+               setMatrix(mtrx);
+
+               // Update round number if cloud has moved us forward
+               const maxRound = updatedResults.reduce((max: number, m: any) => Math.max(max, m.round), 0);
+               const currentLocalRound = localData.roundNumber || 1;
+               if (maxRound >= currentLocalRound) {
+                 setRoundNumber(maxRound + 1);
+                 setCurrentRoundResults([]); // Wipe stale unsaved local round
+               }
+
+               // Merge any new players from cloud that might be missing locally
+               const participantMap = new Map<string, Player>();
+               if (localData.players) {
+                 localData.players.forEach((p: Player) => participantMap.set(p.id, p));
+               }
+               formatted.forEach((m: any) => {
+                 [...m.teamA, ...m.teamB].forEach(p => {
+                   if (!participantMap.has(p.id)) participantMap.set(p.id, p);
+                 });
+               });
+               setPlayers(Array.from(participantMap.values()));
             }
           }
         } else if (!localData) {
