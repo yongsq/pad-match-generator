@@ -288,10 +288,19 @@ function App() {
   };
 
   const handleUpdateScore = (idx: number, scoreA: number | '', scoreB: number | '') => {
-    setCurrentRoundResults(prev => prev.map((m, i) => {
-      if (i !== idx) return m;
-      return { ...m, scoreA, scoreB };
-    }));
+    setCurrentRoundResults(prev => {
+      const next = prev.map((m, i) => {
+        if (i !== idx) return m;
+        return { ...m, scoreA, scoreB };
+      });
+      
+      // Sync score update to cloud immediately for live viewing
+      if (activeSession) {
+        saveMatch(activeSession.id, next[idx]).catch(console.error);
+      }
+      
+      return next;
+    });
   };
 
   const handleReshuffleMatch = (idx: number) => {
@@ -436,8 +445,8 @@ function App() {
             court: m.court,
             teamA: m.team_a,
             teamB: m.team_b,
-            scoreA: m.score_a === null ? '' : m.score_a,
-            scoreB: m.score_b === null ? '' : m.score_b,
+            scoreA: (m.score_a === null || m.score_a === -1) ? '' : m.score_a,
+            scoreB: (m.score_b === null || m.score_b === -1) ? '' : m.score_b,
             isSaved: m.is_saved
           }));
 
@@ -498,18 +507,27 @@ function App() {
             }
 
             // Sync Unsaved Matches from Cloud
-            const maxSavedRound = updatedResults.reduce((max: number, m: any) => Math.max(max, m.round), 0);
+            const allCloudMatches = [...cloudSavedMatches, ...cloudUnsavedMatches];
+            const maxCloudRound = allCloudMatches.reduce((max: number, m: any) => Math.max(max, m.round), 0);
+            
             if (cloudUnsavedMatches.length > 0) {
                setCurrentRoundResults(cloudUnsavedMatches);
-               setRoundNumber(cloudUnsavedMatches[0].round);
-            } else if (maxSavedRound >= (localData.roundNumber || 1)) {
+               setRoundNumber(maxCloudRound + 1);
+            } else if (maxCloudRound >= (localData.roundNumber || 1)) {
                // Cloud has advanced the round and there are no unsaved matches
                setCurrentRoundResults([]);
-               setRoundNumber(maxSavedRound + 1);
-            } else if (maxSavedRound === (localData.roundNumber || 1) - 1 && localData.currentRoundResults?.length > 0) {
+               setRoundNumber(maxCloudRound + 1);
+            } else if (maxCloudRound === (localData.roundNumber || 1) - 1 && localData.currentRoundResults?.length > 0) {
                // Local thinks there's an unsaved round, but cloud says it's deleted
                setCurrentRoundResults([]);
-               setRoundNumber(maxSavedRound + 1);
+               setRoundNumber(maxCloudRound + 1);
+            } else if (localData.currentRoundResults?.length > 0) {
+               // Self-heal: Cloud has no unsaved matches, but local does. Push them up!
+               const localUnsaved = localData.currentRoundResults.filter((m: any) => !m.isSaved);
+               setCurrentRoundResults(localUnsaved);
+               localUnsaved.forEach((m: MatchCardData) => {
+                 saveMatch(s.id, m).catch(console.error);
+               });
             }
 
             if (changed || cloudUnsavedMatches.length > 0) {

@@ -114,8 +114,8 @@ export async function saveMatch(tournamentId: string, match: any, retryCount = 0
       court: match.court,
       team_a: match.teamA,
       team_b: match.teamB,
-      score_a: match.scoreA === '' ? null : match.scoreA,
-      score_b: match.scoreB === '' ? null : match.scoreB,
+      score_a: match.scoreA === '' ? -1 : match.scoreA,
+      score_b: match.scoreB === '' ? -1 : match.scoreB,
       is_saved: match.isSaved,
       user_id: user.id
     });
