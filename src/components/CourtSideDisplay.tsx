@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Clock, Zap, Timer } from 'lucide-react';
 import type { MatchCardData } from '../lib/matchLogic';
 
+const isFixedPair = (pA: any, pB: any) => {
+  if (!pA || !pB) return false;
+  const fA = (pA.fixedPartnerId || '').trim().toLowerCase();
+  const fB = (pB.fixedPartnerId || '').trim().toLowerCase();
+  const idA = (pA.id || '').trim().toLowerCase();
+  const idB = (pB.id || '').trim().toLowerCase();
+  if (!fA && !fB) return false;
+  return (fA === idB) || (fB === idA);
+};
+
 export const CourtSideDisplay: React.FC = () => {
   const [data, setData] = useState<{ 
     currentMatches: MatchCardData[], 
@@ -86,7 +96,11 @@ export const CourtSideDisplay: React.FC = () => {
               gap: '1.5vw',
               alignItems: 'stretch'
             }}>
-              {matches.map((m, idx) => (
+              {matches.map((m, idx) => {
+                const teamAFixed = isFixedPair(m.teamA[0], m.teamA[1]);
+                const teamBFixed = isFixedPair(m.teamB[0], m.teamB[1]);
+                
+                return (
                 <div key={idx} style={{ 
                   background: 'rgba(57, 255, 20, 0.05)',
                   borderRadius: '1rem',
@@ -111,30 +125,54 @@ export const CourtSideDisplay: React.FC = () => {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1.2rem' }}>
-                    <div style={{ 
-                      fontSize: 'clamp(1.2rem, 4vw, 2.2rem)', 
-                      fontWeight: 900, 
-                      lineHeight: 1.1, 
-                      color: '#39ff14',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word'
-                    }}>
-                      {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ 
+                        fontSize: 'clamp(1.2rem, 4vw, 2.2rem)', 
+                        fontWeight: 900, 
+                        lineHeight: 1.1, 
+                        color: teamAFixed ? '#ff9800' : '#39ff14',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}>
+                        {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
+                      </div>
+                      {teamAFixed && <div style={{ color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic', marginTop: '0.3rem' }}>Fixed Partner</div>}
                     </div>
+                    
                     <div style={{ height: '2px', background: 'rgba(57, 255, 20, 0.2)', width: '60px' }} />
-                    <div style={{ 
-                      fontSize: 'clamp(1.2rem, 4vw, 2.2rem)', 
-                      fontWeight: 900, 
-                      lineHeight: 1.1, 
-                      color: '#39ff14',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word'
-                    }}>
-                      {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ 
+                        fontSize: 'clamp(1.2rem, 4vw, 2.2rem)', 
+                        fontWeight: 900, 
+                        lineHeight: 1.1, 
+                        color: teamBFixed ? '#ff9800' : '#39ff14',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}>
+                        {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
+                      </div>
+                      {teamBFixed && <div style={{ color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic', marginTop: '0.3rem' }}>Fixed Partner</div>}
                     </div>
                   </div>
+
+                  {m.debug && (
+                    <div style={{ 
+                      marginTop: '1.2rem', 
+                      paddingTop: '0.8rem', 
+                      borderTop: '1px solid rgba(57, 255, 20, 0.2)',
+                      fontSize: '0.9rem',
+                      color: 'rgba(57, 255, 20, 0.8)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.3rem'
+                    }}>
+                      <div>Team Gap: {Math.abs(m.debug.totalA - m.debug.totalB).toFixed(1)}</div>
+                      <div>Partner Gap: {m.debug.gapA.toFixed(1)} | {m.debug.gapB.toFixed(1)}</div>
+                    </div>
+                  )}
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         ))}
