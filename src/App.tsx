@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import type { Player, Matrix, MatchResult, MatchCardData } from './lib/matchLogic';
 import { generateMatches, updateMatrixWithResult, getMatchConfigurations } from './lib/matchLogic';
@@ -27,6 +27,7 @@ function App() {
   const [targetRounds, setTargetRounds] = useState<number | ''>('');
   const [maxPartnerGap, setMaxPartnerGap] = useState<number | ''>('');
   const [loaded, setLoaded] = useState(false);
+  const syncTimeoutRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const [showManifesto, setShowManifesto] = useState(false);
   const [showLimitations, setShowLimitations] = useState(false);
   const [isTVWindow, setIsTVWindow] = useState(false);
@@ -294,9 +295,12 @@ function App() {
         return { ...m, scoreA, scoreB };
       });
       
-      // Sync score update to cloud immediately for live viewing
+      // Sync score update to cloud with a 1s debounce to prevent race conditions (duplicates)
       if (activeSession) {
-        saveMatch(activeSession.id, next[idx]).catch(console.error);
+        if (syncTimeoutRef.current[idx]) clearTimeout(syncTimeoutRef.current[idx]);
+        syncTimeoutRef.current[idx] = setTimeout(() => {
+          saveMatch(activeSession.id, next[idx]).catch(console.error);
+        }, 1000);
       }
       
       return next;
@@ -304,6 +308,8 @@ function App() {
   };
 
   const handleReshuffleMatch = (idx: number) => {
+    if (syncTimeoutRef.current[idx]) clearTimeout(syncTimeoutRef.current[idx]);
+    
     const match = currentRoundResults[idx];
     if (match.isSaved) return;
 
@@ -339,6 +345,8 @@ function App() {
   };
 
   const handleSaveResult = (idx: number) => {
+    if (syncTimeoutRef.current[idx]) clearTimeout(syncTimeoutRef.current[idx]);
+    
     const match = currentRoundResults[idx];
     
     if (match.isSaved) {
@@ -511,7 +519,14 @@ function App() {
             const maxCloudRound = allCloudMatches.reduce((max: number, m: any) => Math.max(max, m.round), 0);
             
             if (cloudUnsavedMatches.length > 0) {
-               setCurrentRoundResults(cloudUnsavedMatches);
+               // Deduplicate unsaved matches (fixes race condition ghosts)
+               const unsavedMap = new Map();
+               cloudUnsavedMatches.forEach((m: any) => {
+                 unsavedMap.set(`${m.round}-${m.court}`, m);
+               });
+               const finalUnsaved = Array.from(unsavedMap.values());
+               
+               setCurrentRoundResults(finalUnsaved);
                setRoundNumber(maxCloudRound + 1);
             } else if (maxCloudRound >= (localData.roundNumber || 1)) {
                // Cloud has advanced the round and there are no unsaved matches
