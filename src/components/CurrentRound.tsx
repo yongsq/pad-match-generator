@@ -6,6 +6,7 @@ import type { MatchCardData } from '../lib/matchLogic';
 interface CurrentRoundProps {
   matches: MatchCardData[];
   onUpdateScore: (courtIdx: number, scoreA: number | '', scoreB: number | '') => void;
+  onBlurScore: (courtIdx: number) => void;
   onReshuffleMatch: (courtIdx: number) => void;
   onSaveResult: (courtIdx: number) => void;
   onGenerateNextRound: () => void;
@@ -19,6 +20,7 @@ interface CurrentRoundProps {
 export function CurrentRound({
   matches,
   onUpdateScore,
+  onBlurScore,
   onReshuffleMatch,
   onSaveResult,
   onGenerateNextRound,
@@ -186,6 +188,7 @@ export function CurrentRound({
                             className="input score-input"
                             value={card.scoreA}
                             onChange={(e) => onUpdateScore(idx, e.target.value === '' ? '' : parseInt(e.target.value), card.scoreB)}
+                            onBlur={() => onBlurScore(idx)}
                             style={{ margin: 0 }}
                           />
                           <div className="vs-divider" style={{ margin: 0, padding: '0 0.25rem' }}>VS</div>
@@ -194,6 +197,7 @@ export function CurrentRound({
                             className="input score-input"
                             value={card.scoreB}
                             onChange={(e) => onUpdateScore(idx, card.scoreA, e.target.value === '' ? '' : parseInt(e.target.value))}
+                            onBlur={() => onBlurScore(idx)}
                             style={{ margin: 0 }}
                           />
                         </div>

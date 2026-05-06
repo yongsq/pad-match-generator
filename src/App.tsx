@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import type { Player, Matrix, MatchResult, MatchCardData } from './lib/matchLogic';
 import { generateMatches, updateMatrixWithResult, getMatchConfigurations } from './lib/matchLogic';
@@ -27,7 +27,6 @@ function App() {
   const [targetRounds, setTargetRounds] = useState<number | ''>('');
   const [maxPartnerGap, setMaxPartnerGap] = useState<number | ''>('');
   const [loaded, setLoaded] = useState(false);
-  const syncTimeoutRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const [showManifesto, setShowManifesto] = useState(false);
   const [showLimitations, setShowLimitations] = useState(false);
   const [isTVWindow, setIsTVWindow] = useState(false);
@@ -289,27 +288,20 @@ function App() {
   };
 
   const handleUpdateScore = (idx: number, scoreA: number | '', scoreB: number | '') => {
-    setCurrentRoundResults(prev => {
-      const next = prev.map((m, i) => {
-        if (i !== idx) return m;
-        return { ...m, scoreA, scoreB };
-      });
-      
-      // Sync score update to cloud with a 2.5s debounce to prevent race conditions
-      if (activeSession) {
-        if (syncTimeoutRef.current[idx]) clearTimeout(syncTimeoutRef.current[idx]);
-        syncTimeoutRef.current[idx] = setTimeout(() => {
-          saveMatch(activeSession.id, next[idx]).catch(console.error);
-        }, 2500);
-      }
-      
-      return next;
-    });
+    setCurrentRoundResults(prev => prev.map((m, i) => {
+      if (i !== idx) return m;
+      return { ...m, scoreA, scoreB };
+    }));
+  };
+
+  const handleBlurScore = (idx: number) => {
+    // Sync score update to cloud when user finishes typing and clicks away
+    if (activeSession) {
+      saveMatch(activeSession.id, currentRoundResults[idx]).catch(console.error);
+    }
   };
 
   const handleReshuffleMatch = (idx: number) => {
-    if (syncTimeoutRef.current[idx]) clearTimeout(syncTimeoutRef.current[idx]);
-    
     const match = currentRoundResults[idx];
     if (match.isSaved) return;
 
@@ -345,8 +337,6 @@ function App() {
   };
 
   const handleSaveResult = (idx: number) => {
-    if (syncTimeoutRef.current[idx]) clearTimeout(syncTimeoutRef.current[idx]);
-    
     const match = currentRoundResults[idx];
     
     if (match.isSaved) {
@@ -699,6 +689,7 @@ function App() {
       <CurrentRound 
         matches={currentRoundResults}
         onUpdateScore={handleUpdateScore}
+        onBlurScore={handleBlurScore}
         onReshuffleMatch={handleReshuffleMatch}
         onSaveResult={handleSaveResult}
         onGenerateNextRound={handleGenerateRounds}
