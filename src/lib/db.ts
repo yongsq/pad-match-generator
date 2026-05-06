@@ -96,9 +96,19 @@ export async function saveMatch(tournamentId: string, match: any, retryCount = 0
     return false;
   }
 
+  // Manual UPSERT: Delete existing record first to bypass missing unique constraint
+  await supabase
+    .from('match_history')
+    .delete()
+    .eq('tournament_id', tournamentId)
+    .eq('round', match.round)
+    .eq('court', match.court)
+    .eq('user_id', user.id);
+
+  // Then insert the fresh record
   const { error } = await supabase
     .from('match_history')
-    .upsert({
+    .insert({
       tournament_id: tournamentId,
       round: match.round,
       court: match.court,
@@ -108,8 +118,6 @@ export async function saveMatch(tournamentId: string, match: any, retryCount = 0
       score_b: match.scoreB === '' ? null : match.scoreB,
       is_saved: match.isSaved,
       user_id: user.id
-    }, {
-      onConflict: 'tournament_id,round,court'
     });
 
   if (error) {
