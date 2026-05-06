@@ -329,7 +329,7 @@ function getCombinations<T>(array: T[], n: number): T[][] {
   return result;
 }
 
-function getMatrixEntry(a: string, b: string, matrix: Matrix): MatrixRecord {
+export function getMatrixEntry(a: string, b: string, matrix: Matrix): MatrixRecord {
   if (matrix[a] && matrix[a][b]) {
     return matrix[a][b];
   }

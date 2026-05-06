@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import type { Player, Matrix, MatchResult, MatchCardData } from './lib/matchLogic';
-import { generateMatches, updateMatrixWithResult, getMatchConfigurations } from './lib/matchLogic';
+import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry } from './lib/matchLogic';
 import { Controls } from './components/Controls';
 import { PlayerRoster } from './components/PlayerRoster';
 import { CurrentRound } from './components/CurrentRound';
@@ -15,6 +15,21 @@ import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
 import type { Session } from '@supabase/supabase-js';
 import { syncToMasterRoster, lookupMasterPlayers, saveMatch, getSessionMatches, deleteUnsavedMatches, type TournamentSession } from './lib/db';
+
+const attachDebugInfo = (match: any, matrix: Matrix) => {
+  if (!match.teamA || !match.teamB || match.teamA.length < 2 || match.teamB.length < 2) return match;
+  const totalA = Number(match.teamA[0]?.dupr || 3.0) + Number(match.teamA[1]?.dupr || 3.0);
+  const totalB = Number(match.teamB[0]?.dupr || 3.0) + Number(match.teamB[1]?.dupr || 3.0);
+  const gapA = Math.abs(Number(match.teamA[0]?.dupr || 3.0) - Number(match.teamA[1]?.dupr || 3.0));
+  const gapB = Math.abs(Number(match.teamB[0]?.dupr || 3.0) - Number(match.teamB[1]?.dupr || 3.0));
+  const repeatA = getMatrixEntry(match.teamA[0].id, match.teamA[1].id, matrix).partnered > 0;
+  const repeatB = getMatrixEntry(match.teamB[0].id, match.teamB[1].id, matrix).partnered > 0;
+  
+  return {
+    ...match,
+    debug: { totalA, totalB, gapA, gapB, repeatA, repeatB }
+  };
+};
 
 function App() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -453,7 +468,6 @@ function App() {
 
           if (!localData) {
             // No local data, rebuild entirely from cloud
-            setCurrentRoundResults(cloudUnsavedMatches);
             setResults(cloudSavedMatches);
             
             let mtrx = {};
@@ -461,6 +475,9 @@ function App() {
               mtrx = updateMatrixWithResult(mtrx, matchResult.teamA, matchResult.teamB);
             });
             setMatrix(mtrx);
+
+            const unsavedWithDebug = cloudUnsavedMatches.map((m: any) => attachDebugInfo(m, mtrx));
+            setCurrentRoundResults(unsavedWithDebug);
 
             const maxRound = formatted.reduce((max: number, m: any) => Math.max(max, m.round), 0);
             setRoundNumber(maxRound + 1);
@@ -504,6 +521,14 @@ function App() {
                setMatrix(mtrx);
             }
 
+            const currentMatrix = changed ? (function(){
+               let mtrx = {};
+               updatedResults.forEach(r => {
+                 mtrx = updateMatrixWithResult(mtrx, r.teamA, r.teamB);
+               });
+               return mtrx;
+            })() : (localData.matrix || {});
+
             // Sync Unsaved Matches from Cloud
             const allCloudMatches = [...cloudSavedMatches, ...cloudUnsavedMatches];
             const maxCloudRound = allCloudMatches.reduce((max: number, m: any) => Math.max(max, m.round), 0);
@@ -512,7 +537,7 @@ function App() {
                // Deduplicate unsaved matches (fixes race condition ghosts)
                const unsavedMap = new Map();
                cloudUnsavedMatches.forEach((m: any) => {
-                 unsavedMap.set(`${m.round}-${m.court}`, m);
+                 unsavedMap.set(`${m.round}-${m.court}`, attachDebugInfo(m, currentMatrix));
                });
                const finalUnsaved = Array.from(unsavedMap.values());
                
