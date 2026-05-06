@@ -148,6 +148,20 @@ export async function getSessionMatches(tournamentId: string) {
   return data;
 }
 
+export async function deleteUnsavedMatches(tournamentId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { error } = await supabase
+    .from('match_history')
+    .delete()
+    .eq('tournament_id', tournamentId)
+    .eq('is_saved', false)
+    .eq('user_id', user.id);
+
+  if (error) console.error('Error deleting unsaved matches:', error.message);
+}
+
 export async function deleteTournament(id: string) {
   const { error } = await supabase
     .from('tournaments')

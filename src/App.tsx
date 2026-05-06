@@ -14,7 +14,7 @@ import { supabase } from './lib/supabaseClient';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
 import type { Session } from '@supabase/supabase-js';
-import { syncToMasterRoster, lookupMasterPlayers, saveMatch, getSessionMatches, type TournamentSession } from './lib/db';
+import { syncToMasterRoster, lookupMasterPlayers, saveMatch, getSessionMatches, deleteUnsavedMatches, type TournamentSession } from './lib/db';
 
 function App() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -241,6 +241,13 @@ function App() {
     // Incrementally add to roster
     setCurrentRoundResults(prev => [...prev, ...newMatches]);
     setRoundNumber(currentRoundNum);
+
+    // Sync to cloud (newly generated unsaved matches)
+    if (activeSession) {
+      newMatches.forEach(m => {
+        saveMatch(activeSession.id, m).catch(console.error);
+      });
+    }
   };
 
   const handleResetGeneratedRounds = () => {
@@ -273,6 +280,11 @@ function App() {
 
     setPlayers(restoredPlayers);
     setCurrentRoundResults(savedMatches);
+
+    // Delete unsaved matches from cloud
+    if (activeSession) {
+      deleteUnsavedMatches(activeSession.id).catch(console.error);
+    }
   };
 
   const handleUpdateScore = (idx: number, scoreA: number | '', scoreB: number | '') => {
@@ -299,15 +311,22 @@ function App() {
     const nextConfigIdx = (currentConfigIdx + 1) % configs.length;
     const nextConfig = configs[nextConfigIdx];
 
+    const updatedMatch = {
+      ...match,
+      teamA: nextConfig.teamA,
+      teamB: nextConfig.teamB,
+      debug: nextConfig.debug
+    };
+
     setCurrentRoundResults(prev => prev.map((m, i) => {
       if (i !== idx) return m;
-      return {
-        ...m,
-        teamA: nextConfig.teamA,
-        teamB: nextConfig.teamB,
-        debug: nextConfig.debug
-      };
+      return updatedMatch;
     }));
+
+    // Sync reshuffled unsaved match to cloud
+    if (activeSession) {
+      saveMatch(activeSession.id, updatedMatch).catch(console.error);
+    }
   };
 
   const handleSaveResult = (idx: number) => {
