@@ -346,17 +346,25 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
   const sumDiff = Math.abs(sumA - sumB);
   penalty += sumDiff * 2000;
 
+  // Helper to check if two players are a fixed pair
+  const isFixedPair = (pA: Player, pB: Player) => {
+    return pA.fixedPartnerId?.trim().toLowerCase() === pB.id.trim().toLowerCase() ||
+           pB.fixedPartnerId?.trim().toLowerCase() === pA.id.trim().toLowerCase();
+  };
+
   // 2. Partner Variety (Matrix) - HIGH PRIORITY
-  const p1 = getMatrixEntry(teamA[0].id, teamA[1].id, matrix).partnered;
-  const p2 = getMatrixEntry(teamB[0].id, teamB[1].id, matrix).partnered;
+  // If they are a fixed pair, we EXPECT them to partner, so we don't penalize it.
+  const p1 = isFixedPair(teamA[0], teamA[1]) ? 0 : getMatrixEntry(teamA[0].id, teamA[1].id, matrix).partnered;
+  const p2 = isFixedPair(teamB[0], teamB[1]) ? 0 : getMatrixEntry(teamB[0].id, teamB[1].id, matrix).partnered;
   penalty += (p1 + p2) * 5000;
 
   // 3. Opponent Variety (Matrix) - MEDIUM PRIORITY
+  // Use exponential scaling (x^2) to strongly discourage playing the same opponents 3+ times
   const o1 = getMatrixEntry(teamA[0].id, teamB[0].id, matrix).opposed;
   const o2 = getMatrixEntry(teamA[0].id, teamB[1].id, matrix).opposed;
   const o3 = getMatrixEntry(teamA[1].id, teamB[0].id, matrix).opposed;
   const o4 = getMatrixEntry(teamA[1].id, teamB[1].id, matrix).opposed;
-  penalty += (o1 + o2 + o3 + o4) * 1000;
+  penalty += (Math.pow(o1, 2) + Math.pow(o2, 2) + Math.pow(o3, 2) + Math.pow(o4, 2)) * 1000;
 
   // 4. Partner Gap (The "Soft" Rule)
   // We prefer people play with others of their skill level, 
