@@ -79,6 +79,7 @@ export function Guide() {
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <li><strong>Adding DUPR:</strong> Add a player's exact DUPR rating in the text box next to their name. If left blank, they are treated as a beginner.</li>
+            <li><strong>Fixed Partners:</strong> Have a married couple or a dedicated pair playing? Enter an identical, unique word (e.g., "TeamA") into the "Fixed Partner" field for both players. The system will permanently bind them together on the court while tracking their sit-out rotations perfectly in sync!</li>
             <li><strong>Active vs Sit-Out:</strong> Need a player to leave early or rest a round? Uncheck the 'Active' box next to their name! They will be ignored entirely during the next generation. Check it again when they are ready to return.</li>
             <li><strong>Late Joins:</strong> Someone showed up late? Just type their name and hit "Add". They will instantly be cycled into the next available round!</li>
           </ul>
@@ -99,11 +100,12 @@ export function Guide() {
       </div>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.5s', marginTop: '1rem' }}>
-        <h2 className="section-title"><Save size={20} /> 5. Diagnostic Vetting & Edits</h2>
+        <h2 className="section-title"><Save size={20} /> 5. Diagnostic Vetting & Cloud Sync</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <li><strong>Vetting Panels:</strong> Every match card has a diagnostic footer. It turns <strong>RED</strong> if there is a major skill blowout or repeat partner, and <strong>ORANGE</strong> if the skill gap is wider than your preferred setting.</li>
             <li><strong>Match Reshuffle:</strong> Don't like a specific court's pairing? Click the <strong>Refresh icon</strong> in the match header to cycle through the 3 possible team combinations for those 4 players!</li>
+            <li><strong>Cloud Syncing:</strong> Match generation, roster management, and scoring are automatically synced to the Cloud in real-time. This allows Co-Organizers logged into the same account to simultaneously enter scores on their own phones!</li>
             <li><strong>Save Result:</strong> Saving a result locks in the matrix penalties and logs the score permanently in the Results table at the bottom.</li>
             <li><strong>Regenerate Rounds:</strong> Hitting <span style={{ background: 'var(--danger-color)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.8rem' }}>Regenerate Matches</span> will erase all <em>unsaved</em> rounds and re-calculate the session from that point forward.</li>
           </ul>
@@ -125,6 +127,13 @@ export function Guide() {
         <h2 className="section-title"><RefreshCw size={20} /> 7. Ending The Event</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <p>The <strong>PURGE RECORDS</strong> button is the "factory reset" in the setup screen. Your phone saves your tournament data automatically. When the event is over, hit Purge Records to wipe all history and start fresh for the next session.</p>
+        </div>
+      </div>
+
+      <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.65s', marginTop: '1rem' }}>
+        <h2 className="section-title"><Play size={20} /> 8. TV Broadcast System</h2>
+        <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
+          <p>Want to display live matches to the players on a TV? Just copy the browser URL and add <code>?tv=1</code> to the end of it (e.g., <code>https://pad.academy?tv=1</code>). This launches a dark-mode, minimalist TV graphic that automatically updates in real-time without ever needing to be refreshed!</p>
         </div>
       </div>
     </div>

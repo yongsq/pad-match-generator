@@ -27,6 +27,36 @@ export function VersionHistory() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
           <Milestone size={32} style={{ color: 'var(--accent-color)' }} />
           <div>
+            <h2 style={{ margin: 0 }}>Version 1.2 (The Cloud Sync Update)</h2>
+            <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Real-time Co-op & Broadcast TV</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Zap size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Supabase Cloud Synchronization</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                We transitioned from a purely local-storage architecture to a self-healing Cloud Sync model via Supabase. Organizers logged into the same account can now simultaneously manage the tournament and input scores across multiple devices without duplicate data or race conditions.
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Layout size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Live TV Broadcast System</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Added a dedicated "TV View" mode (accessible by appending <code>?tv=1</code> to the URL). This dark-mode, high-contrast display automatically pairs with the host device via a local Broadcast Channel. Any reshuffling, scoring, or matching changes made by the host instantly mirror to the TV screen in real-time.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+          <Milestone size={32} style={{ color: 'var(--accent-color)', opacity: 0.5 }} />
+          <div>
             <h2 style={{ margin: 0 }}>Version 1.1 (The Synergy Update)</h2>
             <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Fixed Partnerships & Pairing Control</p>
           </div>
