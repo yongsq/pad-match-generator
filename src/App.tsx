@@ -295,12 +295,12 @@ function App() {
         return { ...m, scoreA, scoreB };
       });
       
-      // Sync score update to cloud with a 1s debounce to prevent race conditions (duplicates)
+      // Sync score update to cloud with a 2.5s debounce to prevent race conditions
       if (activeSession) {
         if (syncTimeoutRef.current[idx]) clearTimeout(syncTimeoutRef.current[idx]);
         syncTimeoutRef.current[idx] = setTimeout(() => {
           saveMatch(activeSession.id, next[idx]).catch(console.error);
-        }, 1000);
+        }, 2500);
       }
       
       return next;
