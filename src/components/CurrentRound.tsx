@@ -3,6 +3,16 @@ import { Swords, Save, RotateCcw, FileText, Image as ImageIcon, RefreshCw } from
 import { toPng } from 'html-to-image';
 import type { MatchCardData } from '../lib/matchLogic';
 
+const isFixedPair = (pA: any, pB: any) => {
+  if (!pA || !pB) return false;
+  const fA = (pA.fixedPartnerId || '').trim().toLowerCase();
+  const fB = (pB.fixedPartnerId || '').trim().toLowerCase();
+  const idA = (pA.id || '').trim().toLowerCase();
+  const idB = (pB.id || '').trim().toLowerCase();
+  if (!fA && !fB) return false;
+  return (fA === idB) || (fB === idA);
+};
+
 interface CurrentRoundProps {
   matches: MatchCardData[];
   onUpdateScore: (courtIdx: number, scoreA: number | '', scoreB: number | '') => void;
@@ -174,41 +184,49 @@ export function CurrentRound({
                         {card.isSaved && <span className="status-badge status-active" style={{ fontSize: '0.65rem' }}>Saved</span>}
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="team" style={{ flex: 1, minWidth: 0 }}>
-                          <div className="team-players" style={{ fontSize: '0.8rem' }}>
-                            <div>{card.teamA[0]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamA[0]?.dupr || 0).toFixed(1)})</span></div>
-                            <div>{card.teamA[1]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamA[1]?.dupr || 0).toFixed(1)})</span></div>
-                          </div>
-                        </div>
+                      {(() => {
+                        const teamAFixed = isFixedPair(card.teamA[0], card.teamA[1]);
+                        const teamBFixed = isFixedPair(card.teamB[0], card.teamB[1]);
+                        return (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="team" style={{ flex: 1, minWidth: 0 }}>
+                              <div className="team-players" style={{ fontSize: '0.8rem' }}>
+                                <div style={{ color: teamAFixed ? '#ff9800' : 'inherit' }}>{card.teamA[0]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamA[0]?.dupr || 0).toFixed(1)})</span></div>
+                                <div style={{ color: teamAFixed ? '#ff9800' : 'inherit' }}>{card.teamA[1]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamA[1]?.dupr || 0).toFixed(1)})</span></div>
+                                {teamAFixed && <div style={{ fontSize: '0.6rem', color: '#ff9800', marginTop: '2px', fontStyle: 'italic' }}>Fixed Partner</div>}
+                              </div>
+                            </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem', flexShrink: 0 }}>
-                          <input
-                            type="number"
-                            className="input score-input"
-                            value={card.scoreA}
-                            onChange={(e) => onUpdateScore(idx, e.target.value === '' ? '' : parseInt(e.target.value), card.scoreB)}
-                            onBlur={() => onBlurScore(idx)}
-                            style={{ margin: 0 }}
-                          />
-                          <div className="vs-divider" style={{ margin: 0, padding: '0 0.25rem' }}>VS</div>
-                          <input
-                            type="number"
-                            className="input score-input"
-                            value={card.scoreB}
-                            onChange={(e) => onUpdateScore(idx, card.scoreA, e.target.value === '' ? '' : parseInt(e.target.value))}
-                            onBlur={() => onBlurScore(idx)}
-                            style={{ margin: 0 }}
-                          />
-                        </div>
+                            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem', flexShrink: 0 }}>
+                              <input
+                                type="number"
+                                className="input score-input"
+                                value={card.scoreA}
+                                onChange={(e) => onUpdateScore(idx, e.target.value === '' ? '' : parseInt(e.target.value), card.scoreB)}
+                                onBlur={() => onBlurScore(idx)}
+                                style={{ margin: 0 }}
+                              />
+                              <div className="vs-divider" style={{ margin: 0, padding: '0 0.25rem' }}>VS</div>
+                              <input
+                                type="number"
+                                className="input score-input"
+                                value={card.scoreB}
+                                onChange={(e) => onUpdateScore(idx, card.scoreA, e.target.value === '' ? '' : parseInt(e.target.value))}
+                                onBlur={() => onBlurScore(idx)}
+                                style={{ margin: 0 }}
+                              />
+                            </div>
 
-                        <div className="team" style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
-                          <div className="team-players" style={{ fontSize: '0.8rem' }}>
-                            <div>{card.teamB[0]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamB[0]?.dupr || 0).toFixed(1)})</span></div>
-                            <div>{card.teamB[1]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamB[1]?.dupr || 0).toFixed(1)})</span></div>
+                            <div className="team" style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                              <div className="team-players" style={{ fontSize: '0.8rem' }}>
+                                <div style={{ color: teamBFixed ? '#ff9800' : 'inherit' }}>{card.teamB[0]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamB[0]?.dupr || 0).toFixed(1)})</span></div>
+                                <div style={{ color: teamBFixed ? '#ff9800' : 'inherit' }}>{card.teamB[1]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamB[1]?.dupr || 0).toFixed(1)})</span></div>
+                                {teamBFixed && <div style={{ fontSize: '0.6rem', color: '#ff9800', marginTop: '2px', fontStyle: 'italic' }}>Fixed Partner</div>}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
 
                       {card.debug && (
                         <div style={{ marginTop: '0.75rem', padding: '0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.4rem', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -218,10 +236,10 @@ export function CurrentRound({
                                 fontWeight: Math.abs(card.debug.totalA - card.debug.totalB) > 1.0 ? 'bold' : 'normal',
                                 color: Math.abs(card.debug.totalA - card.debug.totalB) > 1.0 ? '#ff4d4d' : 'inherit'
                               }}>
-                                Total DUPR: {card.debug.totalA.toFixed(1)} vs {card.debug.totalB.toFixed(1)}
+                                Team Gap: {Math.abs(card.debug.totalA - card.debug.totalB).toFixed(1)}
                               </span>
                               <span>
-                                Gap: 
+                                Partner Gap: 
                                 <span style={{ 
                                   color: (maxPartnerGap !== '' && card.debug.gapA > maxPartnerGap) ? '#ff9800' : 'inherit',
                                   fontWeight: (maxPartnerGap !== '' && card.debug.gapA > maxPartnerGap) ? 'bold' : 'normal'
@@ -232,12 +250,6 @@ export function CurrentRound({
                                   fontWeight: (maxPartnerGap !== '' && card.debug.gapB > maxPartnerGap) ? 'bold' : 'normal'
                                 }}> {card.debug.gapB.toFixed(1)}</span>
                               </span>
-                            </div>
-                            <div>
-                                Repeat Partner: {[
-                                  card.debug.repeatA ? <span key="a" style={{ color: '#ff4d4d', fontWeight: 'bold' }}>Team A</span> : null,
-                                  card.debug.repeatB ? <span key="b" style={{ color: '#ff4d4d', fontWeight: 'bold' }}>Team B</span> : null
-                                ].filter(Boolean).reduce((prev, curr) => prev === null ? [curr] : [prev, ', ', curr], null as any) || 'Nil'}
                             </div>
                           </div>
                         </div>
@@ -259,6 +271,20 @@ export function CurrentRound({
               </div>
             </div>
           ))}
+
+          {/* ADDED BOTTOM GENERATE BUTTON */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+            <button 
+              className="btn btn-primary" 
+              onClick={onGenerateNextRound} 
+              disabled={isEndlessMode && !allMatchesSaved && matches.length > 0}
+              style={{ width: '100%', maxWidth: '400px', padding: '1rem', fontSize: '1.1rem' }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                {isEndlessMode ? 'Generate Next Round' : `Generate ${targetRounds} More Rounds`}
+              </span>
+            </button>
+          </div>
         </div>
       )}
     </div>
