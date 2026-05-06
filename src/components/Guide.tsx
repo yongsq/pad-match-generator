@@ -79,7 +79,7 @@ export function Guide() {
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <li><strong>Adding DUPR:</strong> Add a player's exact DUPR rating in the text box next to their name. If left blank, they are treated as a beginner.</li>
-            <li><strong>Fixed Partners:</strong> Have a married couple or a dedicated pair playing? Enter an identical, unique word (e.g., "TeamA") into the "Fixed Partner" field for both players. The system will permanently bind them together on the court while tracking their sit-out rotations perfectly in sync!</li>
+            <li><strong>Fixed Partners:</strong> Have a married couple or a dedicated pair playing? Simply select their partner's name from the "Fixed Partner" dropdown menu next to them in the roster. The system will permanently bind them together on the court while tracking their sit-out rotations perfectly in sync!</li>
             <li><strong>Active vs Sit-Out:</strong> Need a player to leave early or rest a round? Uncheck the 'Active' box next to their name! They will be ignored entirely during the next generation. Check it again when they are ready to return.</li>
             <li><strong>Late Joins:</strong> Someone showed up late? Just type their name and hit "Add". They will instantly be cycled into the next available round!</li>
           </ul>
