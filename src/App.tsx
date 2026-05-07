@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import type { Player, Matrix, MatchResult, MatchCardData } from './lib/matchLogic';
 import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry } from './lib/matchLogic';
@@ -87,11 +87,20 @@ function App() {
     }
   }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap, loaded, activeSession]);
 
+  const latestStateRef = useRef({ players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession });
+  
+  useEffect(() => {
+    latestStateRef.current = { players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession };
+  }, [players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession]);
+
   // Deterministic Cloud Sync System
   useEffect(() => {
-    if (syncTrigger > 0 && activeSession) {
-      const settings = { courts, isEndlessMode, targetRounds, maxPartnerGap };
-      updateTournamentState(activeSession.id, players, settings).catch(console.error);
+    if (syncTrigger > 0) {
+      const state = latestStateRef.current;
+      if (!state.activeSession) return;
+      const settings = { courts: state.courts, isEndlessMode: state.isEndlessMode, targetRounds: state.targetRounds, maxPartnerGap: state.maxPartnerGap };
+      alert(`Syncing to cloud! Players length: ${state.players.length}`);
+      updateTournamentState(state.activeSession.id, state.players, settings).catch(console.error);
     }
   }, [syncTrigger]); // Only trigger when explicitly requested via onBlur or button clicks
 
