@@ -127,14 +127,19 @@ function App() {
   }, [currentRoundResults, roundNumber, activeSession, loaded, isTVWindow]);
 
 
-  // Controls Callbacks
   const handleSetup = async (parsedPlayers: Player[]) => {
-    // If setting up fresh overrides existing
     if (players.length > 0) {
       if (!confirm('This will overwrite current participants. Continue?')) return;
     }
 
-    // PHASE 2: SMART MATCH - Lookup DUPR IDs from Master Roster
+    const defaultCourts = Math.max(1, Math.floor(parsedPlayers.length / 4));
+    setCourts(defaultCourts);
+    setMatrix({});
+    setResults([]);
+    setCurrentRoundResults([]);
+    setRoundNumber(1);
+    setTargetRounds('');
+
     if (session) {
       const names = parsedPlayers.map(p => p.name);
       const masterData = await lookupMasterPlayers(names);
@@ -152,12 +157,12 @@ function App() {
       });
       setPlayers(matchedPlayers);
       if (activeSession) {
-        updateTournamentState(activeSession.id, matchedPlayers, { courts, isEndlessMode, targetRounds, maxPartnerGap }).catch(console.error);
+        updateTournamentState(activeSession.id, matchedPlayers, { courts: defaultCourts, isEndlessMode, targetRounds: '', maxPartnerGap }).catch(console.error);
       }
     } else {
       setPlayers(parsedPlayers);
       if (activeSession) {
-        updateTournamentState(activeSession.id, parsedPlayers, { courts, isEndlessMode, targetRounds, maxPartnerGap }).catch(console.error);
+        updateTournamentState(activeSession.id, parsedPlayers, { courts: defaultCourts, isEndlessMode, targetRounds: '', maxPartnerGap }).catch(console.error);
       }
     }
   };
