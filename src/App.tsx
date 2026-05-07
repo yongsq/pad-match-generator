@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import type { Player, Matrix, MatchResult, MatchCardData } from './lib/matchLogic';
 import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry } from './lib/matchLogic';
@@ -49,6 +49,7 @@ function App() {
   const [activeSession, setActiveSession] = useState<TournamentSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'online' | 'offline' | 'error'>('online');
+  const [syncTrigger, setSyncTrigger] = useState(0);
 
   // Online/Offline Listeners
   useEffect(() => {
@@ -87,27 +88,14 @@ function App() {
   }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap, loaded, activeSession]);
 
   // Deterministic Cloud Sync System
-  const latestStateRef = useRef({ players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession });
-  
   useEffect(() => {
-    latestStateRef.current = { players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession };
-  }, [players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession]);
+    if (syncTrigger > 0 && activeSession) {
+      const settings = { courts, isEndlessMode, targetRounds, maxPartnerGap };
+      updateTournamentState(activeSession.id, players, settings).catch(console.error);
+    }
+  }, [syncTrigger]); // Only trigger when explicitly requested via onBlur or button clicks
 
-  const syncSessionToCloud = () => {
-    // Wait for the current React render cycle to flush updates to the ref
-    setTimeout(() => {
-      const state = latestStateRef.current;
-      if (!state.activeSession) return;
-      
-      const settings = { 
-        courts: state.courts, 
-        isEndlessMode: state.isEndlessMode, 
-        targetRounds: state.targetRounds, 
-        maxPartnerGap: state.maxPartnerGap 
-      };
-      updateTournamentState(state.activeSession.id, state.players, settings).catch(console.error);
-    }, 50);
-  };
+  const triggerCloudSync = () => setSyncTrigger(t => t + 1);
 
   useEffect(() => {
     // Check if we are in a dedicated TV window
@@ -750,7 +738,7 @@ function App() {
         maxPartnerGap={maxPartnerGap}
         setMaxPartnerGap={setMaxPartnerGap}
         onPurge={handleCloseSession}
-        onSyncSettings={syncSessionToCloud}
+        onSyncSettings={triggerCloudSync}
       />
       
       <PlayerRoster 
@@ -758,7 +746,7 @@ function App() {
         updatePlayer={updatePlayer} 
         addPlayer={addPlayer} 
         removePlayer={removePlayer}
-        onSyncRoster={syncSessionToCloud}
+        onSyncRoster={triggerCloudSync}
       />
       
       <CurrentRound 
