@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import type { Player, Matrix, MatchResult, MatchCardData } from './lib/matchLogic';
 import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry } from './lib/matchLogic';
@@ -83,16 +83,31 @@ function App() {
       localStorage.setItem(`pad_session_${activeSession.id}`, JSON.stringify({
         players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap
       }));
-
-      // Cloud Sync Debouncer for Roster & Settings
-      const handler = setTimeout(() => {
-        const settings = { courts, isEndlessMode, targetRounds, maxPartnerGap };
-        updateTournamentState(activeSession.id, players, settings).catch(console.error);
-      }, 1500); // 1.5 second debounce
-
-      return () => clearTimeout(handler);
     }
   }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap, loaded, activeSession]);
+
+  // Deterministic Cloud Sync System
+  const latestStateRef = useRef({ players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession });
+  
+  useEffect(() => {
+    latestStateRef.current = { players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession };
+  }, [players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession]);
+
+  const syncSessionToCloud = () => {
+    // Wait for the current React render cycle to flush updates to the ref
+    setTimeout(() => {
+      const state = latestStateRef.current;
+      if (!state.activeSession) return;
+      
+      const settings = { 
+        courts: state.courts, 
+        isEndlessMode: state.isEndlessMode, 
+        targetRounds: state.targetRounds, 
+        maxPartnerGap: state.maxPartnerGap 
+      };
+      updateTournamentState(state.activeSession.id, state.players, settings).catch(console.error);
+    }, 50);
+  };
 
   useEffect(() => {
     // Check if we are in a dedicated TV window
@@ -725,6 +740,7 @@ function App() {
         maxPartnerGap={maxPartnerGap}
         setMaxPartnerGap={setMaxPartnerGap}
         onPurge={handleCloseSession}
+        onSyncSettings={syncSessionToCloud}
       />
       
       <PlayerRoster 
@@ -732,6 +748,7 @@ function App() {
         updatePlayer={updatePlayer} 
         addPlayer={addPlayer} 
         removePlayer={removePlayer}
+        onSyncRoster={syncSessionToCloud}
       />
       
       <CurrentRound 

@@ -7,9 +7,10 @@ interface PlayerRosterProps {
   updatePlayer: (id: string, partial: Partial<Player>) => void;
   addPlayer: (name: string, dupr: number | '') => void;
   removePlayer: (id: string) => void;
+  onSyncRoster: () => void;
 }
 
-export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }: PlayerRosterProps) {
+export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, onSyncRoster }: PlayerRosterProps) {
   const [newName, setNewName] = useState('');
   const [newDupr, setNewDupr] = useState<string>('');
 
@@ -18,6 +19,7 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
       addPlayer(newName.trim(), newDupr === '' ? '' : parseFloat(newDupr));
       setNewName('');
       setNewDupr('');
+      onSyncRoster();
     }
   };
 
@@ -88,6 +90,7 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
                         style={{ width: '70px', padding: '0.25rem', height: '30px' }}
                         value={p.dupr}
                         onChange={e => updatePlayer(p.id, { dupr: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                        onBlur={onSyncRoster}
                        />
                     </td>
                     <td>
@@ -111,6 +114,7 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
                             const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
                             updatePlayer(p.id, { duprId: val });
                           }}
+                          onBlur={onSyncRoster}
                         />
                         {isIdIncomplete && (
                           <div title="DUPR IDs are usually 6 characters">
@@ -127,7 +131,10 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
                         className="input"
                         style={{ width: '140px', padding: '0.25rem', height: '30px', fontSize: '0.8rem' }}
                         value={p.fixedPartnerId || ''}
-                        onChange={e => updatePlayer(p.id, { fixedPartnerId: e.target.value || undefined })}
+                        onChange={e => {
+                          updatePlayer(p.id, { fixedPartnerId: e.target.value || undefined });
+                          onSyncRoster();
+                        }}
                       >
                         <option value="">None</option>
                         {players
@@ -141,7 +148,10 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
                     <td>
                       <button 
                         className={`badge ${p.isActive ? 'badge-success' : 'badge-danger'}`}
-                        onClick={() => updatePlayer(p.id, { isActive: !p.isActive })}
+                        onClick={() => {
+                          updatePlayer(p.id, { isActive: !p.isActive });
+                          onSyncRoster();
+                        }}
                       >
                         {p.isActive ? 'Active' : 'Out'}
                       </button>
@@ -149,7 +159,16 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer }:
                     <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{p.gamesPlayed}</td>
                     <td style={{ textAlign: 'center', opacity: 0.5 }}>{p.consecutiveSitOuts}</td>
                     <td>
-                      <button className="btn btn-icon btn-ghost" onClick={() => removePlayer(p.id)} title="Remove player">
+                      <button 
+                        className="btn btn-icon btn-ghost" 
+                        onClick={() => {
+                          if (window.confirm(`Remove ${p.name}?`)) {
+                            removePlayer(p.id);
+                            onSyncRoster();
+                          }
+                        }} 
+                        title="Remove player"
+                      >
                         <Trash2 size={16} />
                       </button>
                     </td>

@@ -14,6 +14,7 @@ interface ControlsProps {
   maxPartnerGap: number | '';
   setMaxPartnerGap: (n: number | '') => void;
   onPurge: () => void;
+  onSyncSettings: () => void;
 }
 
 export function Controls({ 
@@ -26,7 +27,8 @@ export function Controls({
   setTargetRounds, 
   maxPartnerGap,
   setMaxPartnerGap,
-  onPurge 
+  onPurge,
+  onSyncSettings
 }: ControlsProps) {
   const [pasteText, setPasteText] = useState('');
 
@@ -86,6 +88,7 @@ export function Controls({
               max={20}
               value={courts}
               onChange={(e) => setCourts(e.target.value === '' ? '' : parseInt(e.target.value))}
+              onBlur={onSyncSettings}
               style={{ width: '60px', padding: '0.25rem' }}
             />
           </div>
@@ -106,6 +109,7 @@ export function Controls({
                 max={5}
                 value={maxPartnerGap}
                 onChange={(e) => setMaxPartnerGap(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                onBlur={onSyncSettings}
                 style={{ width: '80px', padding: '0.25rem' }}
               />
             </div>
@@ -119,7 +123,10 @@ export function Controls({
               <input 
                 type="checkbox" 
                 checked={isEndlessMode} 
-                onChange={(e) => setIsEndlessMode(e.target.checked)}
+                onChange={(e) => {
+                  setIsEndlessMode(e.target.checked);
+                  onSyncSettings();
+                }}
                 style={{ width: '16px', height: '16px' }}
               />
               Endless Mode
@@ -134,6 +141,7 @@ export function Controls({
                   max={20}
                   value={targetRounds}
                   onChange={(e) => setTargetRounds(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  onBlur={onSyncSettings}
                   style={{ width: '80px', padding: '0.25rem' }}
                 />
                 <span className="text-xs">Rounds</span>
