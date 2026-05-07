@@ -95,14 +95,19 @@ export async function updateTournamentState(id: string, roster: any[], settings:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('tournaments')
     .update({ roster, settings })
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .select();
 
   if (error) {
     console.error('Error syncing tournament state:', error.message);
+    alert('Cloud Sync Failed (Error): ' + error.message);
+  } else if (!data || data.length === 0) {
+    console.error('Cloud Sync Failed: RLS blocked the update or tournament not found.');
+    alert('Cloud Sync Blocked: Ensure your Supabase RLS policy allows UPDATE for the tournaments table.');
   }
 }
 
