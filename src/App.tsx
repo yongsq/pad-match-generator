@@ -163,8 +163,14 @@ function App() {
         return p;
       });
       setPlayers(matchedPlayers);
+      if (activeSession) {
+        updateTournamentState(activeSession.id, matchedPlayers, { courts, isEndlessMode, targetRounds, maxPartnerGap }).catch(console.error);
+      }
     } else {
       setPlayers(parsedPlayers);
+      if (activeSession) {
+        updateTournamentState(activeSession.id, parsedPlayers, { courts, isEndlessMode, targetRounds, maxPartnerGap }).catch(console.error);
+      }
     }
   };
 
@@ -485,6 +491,10 @@ function App() {
              setTargetRounds(s.settings.targetRounds || '');
              setMaxPartnerGap(s.settings.maxPartnerGap || 2);
            }
+        } else if (localData && (!s.roster || s.roster.length === 0)) {
+           // Backfill Migration: We have local data but cloud is empty. Push it up instantly.
+           const settings = { courts: localData.courts, isEndlessMode: localData.isEndlessMode, targetRounds: localData.targetRounds, maxPartnerGap: localData.maxPartnerGap };
+           updateTournamentState(s.id, localData.players || [], settings).catch(console.error);
         }
 
         if (matches && matches.length > 0) {
