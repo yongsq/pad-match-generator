@@ -14,7 +14,7 @@ import { supabase } from './lib/supabaseClient';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
 import type { Session } from '@supabase/supabase-js';
-import { syncToMasterRoster, lookupMasterPlayers, saveMatch, getSessionMatches, deleteUnsavedMatches, type TournamentSession } from './lib/db';
+import { syncToMasterRoster, lookupMasterPlayers, saveMatch, getSessionMatches, deleteUnsavedMatches, updateTournamentState, type TournamentSession } from './lib/db';
 
 const attachDebugInfo = (match: any, matrix: Matrix) => {
   if (!match.teamA || !match.teamB || match.teamA.length < 2 || match.teamB.length < 2) return match;
@@ -83,8 +83,16 @@ function App() {
       localStorage.setItem(`pad_session_${activeSession.id}`, JSON.stringify({
         players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap
       }));
+
+      // Cloud Sync Debouncer for Roster & Settings
+      const handler = setTimeout(() => {
+        const settings = { courts, isEndlessMode, targetRounds, maxPartnerGap };
+        updateTournamentState(activeSession.id, players, settings).catch(console.error);
+      }, 1500); // 1.5 second debounce
+
+      return () => clearTimeout(handler);
     }
-  }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, loaded, activeSession]);
+  }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap, loaded, activeSession]);
 
   useEffect(() => {
     // Check if we are in a dedicated TV window
@@ -452,6 +460,18 @@ function App() {
 
         // Fetch cloud matches to ensure we have the latest
         const matches = await getSessionMatches(s.id);
+        
+        // If Cloud has roster/settings, and we don't have localData (or we want to prioritize cloud), merge it
+        if (!localData && s.roster && s.roster.length > 0) {
+           setPlayers(s.roster);
+           if (s.settings) {
+             setCourts(s.settings.courts || '');
+             setIsEndlessMode(s.settings.isEndlessMode ?? true);
+             setTargetRounds(s.settings.targetRounds || '');
+             setMaxPartnerGap(s.settings.maxPartnerGap || 2);
+           }
+        }
+
         if (matches && matches.length > 0) {
           const formatted = matches.map((m: any) => ({
             round: m.round,
@@ -482,14 +502,17 @@ function App() {
             const maxRound = formatted.reduce((max: number, m: any) => Math.max(max, m.round), 0);
             setRoundNumber(maxRound + 1);
 
-            const participantMap = new Map<string, Player>();
-            formatted.forEach((m: any) => {
-              [...m.teamA, ...m.teamB].forEach(p => {
-                if (!participantMap.has(p.id)) participantMap.set(p.id, p);
+            // Only set players from match history if the cloud roster was empty
+            if (!s.roster || s.roster.length === 0) {
+              const participantMap = new Map<string, Player>();
+              formatted.forEach((m: any) => {
+                [...m.teamA, ...m.teamB].forEach(p => {
+                  if (!participantMap.has(p.id)) participantMap.set(p.id, p);
+                });
               });
-            });
-            if (participantMap.size > 0) {
-              setPlayers(Array.from(participantMap.values()));
+              if (participantMap.size > 0) {
+                setPlayers(Array.from(participantMap.values()));
+              }
             }
           } else {
             // Smart Merge: We have local data, but cloud might have new matches from another device

@@ -60,6 +60,8 @@ export interface TournamentSession {
   name: string;
   created_at: string;
   status: 'active' | 'archived';
+  roster?: any[];
+  settings?: any;
 }
 
 export async function createTournament(name: string): Promise<TournamentSession | null> {
@@ -87,6 +89,21 @@ export async function getTournaments(): Promise<TournamentSession[]> {
 
   if (error) return [];
   return data as TournamentSession[];
+}
+
+export async function updateTournamentState(id: string, roster: any[], settings: any) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { error } = await supabase
+    .from('tournaments')
+    .update({ roster, settings })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error syncing tournament state:', error.message);
+  }
 }
 
 export async function saveMatch(tournamentId: string, match: any, retryCount = 0): Promise<boolean> {
