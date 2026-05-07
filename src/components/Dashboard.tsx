@@ -42,6 +42,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectTournament }) => {
           Tournament <span style={{ color: 'var(--accent-color)' }}>Command Center</span>
         </h1>
         <p style={{ opacity: 0.6, fontSize: '1.1rem' }}>Manage your PAD Academy sessions and player database.</p>
+        <button onClick={() => {
+           if (sessions.length > 0) {
+             const s = sessions[0];
+             alert(`ID: ${s.id}\nRoster exists: ${!!s.roster}\nRoster type: ${typeof s.roster}\nRoster isArray: ${Array.isArray(s.roster)}\nRoster string: ${JSON.stringify(s.roster)}`);
+           }
+        }}>Debug First Session</button>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
