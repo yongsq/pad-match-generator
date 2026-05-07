@@ -99,7 +99,7 @@ function App() {
       const state = latestStateRef.current;
       if (!state.activeSession) return;
       const settings = { courts: state.courts, isEndlessMode: state.isEndlessMode, targetRounds: state.targetRounds, maxPartnerGap: state.maxPartnerGap };
-      alert(`Syncing to cloud! Players length: ${state.players.length}`);
+      console.log(`Syncing to cloud! Players length: ${state.players.length}`);
       updateTournamentState(state.activeSession.id, state.players, settings).catch(console.error);
     }
   }, [syncTrigger]); // Only trigger when explicitly requested via onBlur or button clicks
@@ -485,15 +485,21 @@ function App() {
         const matches = await getSessionMatches(s.id);
         
         // If Cloud has roster/settings, and we don't have localData (or we want to prioritize cloud), merge it
-        if (!localData && s.roster && s.roster.length > 0) {
-           setPlayers(s.roster);
-           if (s.settings) {
-             setCourts(s.settings.courts || '');
-             setIsEndlessMode(s.settings.isEndlessMode ?? true);
-             setTargetRounds(s.settings.targetRounds || '');
-             setMaxPartnerGap(s.settings.maxPartnerGap || 2);
+        if (!localData && s.roster) {
+           let r = s.roster;
+           try { if (typeof r === 'string') r = JSON.parse(r); } catch(e) {}
+           if (Array.isArray(r) && r.length > 0) {
+             setPlayers(r);
            }
-        } else if (localData && (!s.roster || s.roster.length === 0)) {
+           if (s.settings) {
+             let set = s.settings;
+             try { if (typeof set === 'string') set = JSON.parse(set); } catch(e) {}
+             setCourts(set.courts || '');
+             setIsEndlessMode(set.isEndlessMode ?? true);
+             setTargetRounds(set.targetRounds || '');
+             setMaxPartnerGap(set.maxPartnerGap || 2);
+           }
+        } else if (localData && (!s.roster || (Array.isArray(s.roster) && s.roster.length === 0))) {
            // Backfill Migration: We have local data but cloud is empty. Push it up instantly.
            const settings = { courts: localData.courts, isEndlessMode: localData.isEndlessMode, targetRounds: localData.targetRounds, maxPartnerGap: localData.maxPartnerGap };
            updateTournamentState(s.id, localData.players || [], settings).catch(console.error);

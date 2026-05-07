@@ -104,10 +104,8 @@ export async function updateTournamentState(id: string, roster: any[], settings:
 
   if (error) {
     console.error('Error syncing tournament state:', error.message);
-    alert('Cloud Sync Failed (Error): ' + error.message);
   } else if (!data || data.length === 0) {
     console.error('Cloud Sync Failed: RLS blocked the update or tournament not found.');
-    alert('Cloud Sync Blocked: Ensure your Supabase RLS policy allows UPDATE for the tournaments table.');
   }
 }
 
