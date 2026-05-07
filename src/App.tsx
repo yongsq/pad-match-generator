@@ -632,17 +632,6 @@ function App() {
 
 
           }
-        } else if (!localData) {
-           // No cloud matches and no local data. Reset to defaults.
-           setPlayers([]);
-           setCourts('');
-           setMatrix({});
-           setResults([]);
-           setCurrentRoundResults([]);
-           setRoundNumber(1);
-           setTargetRounds('');
-           setMaxPartnerGap(2);
-           setIsEndlessMode(true);
         }
       }
 
