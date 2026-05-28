@@ -407,8 +407,8 @@ function App() {
     if (otherMatchIdx !== -1) {
       // Cross-court Swap
       const otherMatch = currentRoundResults[otherMatchIdx];
-      const updatedMatch = replacePlayerInMatch(match, swapOutId, swapInPlayerObj);
-      const updatedOtherMatch = replacePlayerInMatch(otherMatch, swapInId, swapOutPlayerObj);
+      const updatedMatch = attachDebugInfo(replacePlayerInMatch(match, swapOutId, swapInPlayerObj), matrix);
+      const updatedOtherMatch = attachDebugInfo(replacePlayerInMatch(otherMatch, swapInId, swapOutPlayerObj), matrix);
 
       nextRoundResults[matchIdx] = updatedMatch;
       nextRoundResults[otherMatchIdx] = updatedOtherMatch;
@@ -421,7 +421,7 @@ function App() {
       }
     } else {
       // Sit-out Swap
-      const updatedMatch = replacePlayerInMatch(match, swapOutId, swapInPlayerObj);
+      const updatedMatch = attachDebugInfo(replacePlayerInMatch(match, swapOutId, swapInPlayerObj), matrix);
       nextRoundResults[matchIdx] = updatedMatch;
 
       setCurrentRoundResults(nextRoundResults);

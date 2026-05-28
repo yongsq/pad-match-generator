@@ -95,14 +95,17 @@ export function CurrentRound({
     if (!player.fixedPartnerId) return false;
     
     const partnerId = player.fixedPartnerId.trim().toLowerCase();
-    const allPlayersOnCourt = [...match.teamA, ...match.teamB];
+    const partner = players.find(p => p.id === partnerId);
+    if (!partner || !partner.isActive) return false;
     
-    const partnerOnCourt = allPlayersOnCourt.find(px => px.id.trim().toLowerCase() === partnerId);
+    const isOnTeamA = match.teamA.some(tx => tx.id === player.id);
+    const isOnTeamB = match.teamB.some(tx => tx.id === player.id);
     
-    if (partnerOnCourt) {
-      const isOnTeamA = match.teamA.some(tx => tx.id === player.id);
-      const partnerOnTeamA = match.teamA.some(tx => tx.id === partnerOnCourt.id);
-      return isOnTeamA !== partnerOnTeamA;
+    if (isOnTeamA) {
+      return !match.teamA.some(tx => tx.id === partnerId);
+    }
+    if (isOnTeamB) {
+      return !match.teamB.some(tx => tx.id === partnerId);
     }
     
     return false;
@@ -121,9 +124,11 @@ export function CurrentRound({
     // Sit-outs
     const sitOuts = players.filter(p => p.isActive && !playersPlaying.some(pp => pp.id === p.id));
     
-    // Cross-courts (players playing in this round, but not on this court)
+    // Cross-courts (players playing in this round in unsaved matches, but not on this court)
+    const unsavedRoundMatches = roundMatches.filter(m => !m.isSaved);
+    const playersPlayingUnsaved = unsavedRoundMatches.flatMap(m => [...m.teamA, ...m.teamB]);
     const currentMatchPlayers = [...card.teamA, ...card.teamB];
-    const crossCourts = playersPlaying.filter(pp => !currentMatchPlayers.some(cmp => cmp.id === pp.id));
+    const crossCourts = playersPlayingUnsaved.filter(pp => !currentMatchPlayers.some(cmp => cmp.id === pp.id));
 
     return (
       <div 
