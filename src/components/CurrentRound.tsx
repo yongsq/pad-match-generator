@@ -1,10 +1,12 @@
-import { useRef } from 'react';
-import { Swords, Save, RotateCcw, FileText, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Swords, Save, RotateCcw, FileText, Image as ImageIcon, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import type { MatchCardData } from '../lib/matchLogic';
+import type { MatchCardData, Player } from '../lib/matchLogic';
 
 interface CurrentRoundProps {
   matches: MatchCardData[];
+  players: Player[];
+  onSwapPlayer: (courtIdx: number, swapOutId: string, swapInId: string) => void;
   onUpdateScore: (courtIdx: number, scoreA: number | '', scoreB: number | '') => void;
   onBlurScore: (courtIdx: number) => void;
   onReshuffleMatch: (courtIdx: number) => void;
@@ -19,6 +21,8 @@ interface CurrentRoundProps {
 
 export function CurrentRound({
   matches,
+  players,
+  onSwapPlayer,
   onUpdateScore,
   onBlurScore,
   onReshuffleMatch,
@@ -31,6 +35,7 @@ export function CurrentRound({
   hasPlayers
 }: CurrentRoundProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [activeSwap, setActiveSwap] = useState<{ matchIdx: number; playerId: string } | null>(null);
 
   if (!hasPlayers) return null;
 // ... (omitting intermediate helper logic if possible, otherwise I'll just target the header)
@@ -86,8 +91,195 @@ export function CurrentRound({
   
   const allMatchesSaved = matches.length > 0 && matches.every(m => m.isSaved);
 
+  const isPlayerFixedPartnerSplit = (player: Player, match: MatchCardData): boolean => {
+    if (!player.fixedPartnerId) return false;
+    
+    const partnerId = player.fixedPartnerId.trim().toLowerCase();
+    const allPlayersOnCourt = [...match.teamA, ...match.teamB];
+    
+    const partnerOnCourt = allPlayersOnCourt.find(px => px.id.trim().toLowerCase() === partnerId);
+    
+    if (partnerOnCourt) {
+      const isOnTeamA = match.teamA.some(tx => tx.id === player.id);
+      const partnerOnTeamA = match.teamA.some(tx => tx.id === partnerOnCourt.id);
+      return isOnTeamA !== partnerOnTeamA;
+    }
+    
+    return false;
+  };
+
+  const renderPlayer = (player: Player, card: MatchCardData, idx: number, alignment: 'left' | 'right') => {
+    if (!player) return <div>TBD</div>;
+
+    const isSplit = isPlayerFixedPartnerSplit(player, card);
+    const isDropdownOpen = activeSwap?.matchIdx === idx && activeSwap?.playerId === player.id;
+
+    // Filter candidates for this specific round
+    const roundMatches = matches.filter(m => m.round === card.round);
+    const playersPlaying = roundMatches.flatMap(m => [...m.teamA, ...m.teamB]);
+    
+    // Sit-outs
+    const sitOuts = players.filter(p => p.isActive && !playersPlaying.some(pp => pp.id === p.id));
+    
+    // Cross-courts (players playing in this round, but not on this court)
+    const currentMatchPlayers = [...card.teamA, ...card.teamB];
+    const crossCourts = playersPlaying.filter(pp => !currentMatchPlayers.some(cmp => cmp.id === pp.id));
+
+    return (
+      <div 
+        style={{ 
+          position: 'relative', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: alignment === 'left' ? 'flex-start' : 'flex-end',
+          gap: '0.4rem',
+          margin: '0.15rem 0'
+        }}
+      >
+        {alignment === 'right' && isSplit && (
+          <span title="Fixed partner is on the opposing team!" style={{ color: '#ff9800', cursor: 'help' }}>⚠️</span>
+        )}
+        
+        <span style={{ fontWeight: 500 }}>{player.name}</span>
+        <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(player.dupr || 0).toFixed(1)})</span>
+        
+        {alignment === 'left' && isSplit && (
+          <span title="Fixed partner is on the opposing team!" style={{ color: '#ff9800', cursor: 'help', marginLeft: '0.2rem' }}>⚠️</span>
+        )}
+
+        {!card.isSaved && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveSwap(isDropdownOpen ? null : { matchIdx: idx, playerId: player.id });
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '4px',
+              padding: '2px 4px',
+              color: 'var(--text-color)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              marginLeft: alignment === 'left' ? '0.4rem' : '0',
+              marginRight: alignment === 'right' ? '0.4rem' : '0',
+              order: alignment === 'right' ? -1 : 0
+            }}
+            title="Swap Player"
+          >
+            <ArrowLeftRight size={10} />
+          </button>
+        )}
+
+        {isDropdownOpen && (
+          <div 
+            className="glass-panel"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: alignment === 'left' ? 0 : 'auto',
+              right: alignment === 'right' ? 0 : 'auto',
+              background: 'rgba(15, 23, 42, 0.98)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '8px',
+              minWidth: '260px',
+              maxHeight: '250px',
+              overflowY: 'auto',
+              zIndex: 1000,
+              boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+              padding: '0.4rem 0',
+              textAlign: 'left'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '0.25rem 0.6rem', fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--accent-color)', borderBottom: '1px solid rgba(255,255,255,0.1)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Sit-out Players
+            </div>
+            {sitOuts.length === 0 ? (
+              <div style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', opacity: 0.5, fontStyle: 'italic' }}>
+                No active players sitting out
+              </div>
+            ) : (
+              sitOuts.map(candidate => (
+                <div 
+                  key={candidate.id} 
+                  className="dropdown-item"
+                  onClick={() => {
+                    onSwapPlayer(idx, player.id, candidate.id);
+                    setActiveSwap(null);
+                  }}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ fontWeight: 500 }}>{candidate.name}</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
+                    GP: {candidate.gamesPlayed} | DUPR: {Number(candidate.dupr || 0).toFixed(1)}
+                  </span>
+                </div>
+              ))
+            )}
+
+            <div style={{ padding: '0.25rem 0.6rem', fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--accent-color)', borderBottom: '1px solid rgba(255,255,255,0.1)', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Other Courts (Cross-court Swap)
+            </div>
+            {crossCourts.length === 0 ? (
+              <div style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', opacity: 0.5, fontStyle: 'italic' }}>
+                No cross-court candidates
+              </div>
+            ) : (
+              crossCourts.map(candidate => (
+                <div 
+                  key={candidate.id} 
+                  className="dropdown-item"
+                  onClick={() => {
+                    onSwapPlayer(idx, player.id, candidate.id);
+                    setActiveSwap(null);
+                  }}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ fontWeight: 500 }}>{candidate.name}</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
+                    GP: {candidate.gamesPlayed} | DUPR: {Number(candidate.dupr || 0).toFixed(1)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.1s' }}>
+      {activeSwap && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999,
+            cursor: 'default'
+          }}
+          onClick={() => setActiveSwap(null)}
+        />
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h2 className="section-title" style={{ margin: 0 }}>
           <Swords size={20} />
@@ -177,8 +369,8 @@ export function CurrentRound({
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div className="team" style={{ flex: 1, minWidth: 0 }}>
                           <div className="team-players" style={{ fontSize: '0.8rem' }}>
-                            <div>{card.teamA[0]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamA[0]?.dupr || 0).toFixed(1)})</span></div>
-                            <div>{card.teamA[1]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamA[1]?.dupr || 0).toFixed(1)})</span></div>
+                            {renderPlayer(card.teamA[0], card, idx, 'left')}
+                            {renderPlayer(card.teamA[1], card, idx, 'left')}
                           </div>
                         </div>
 
@@ -204,8 +396,8 @@ export function CurrentRound({
 
                         <div className="team" style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
                           <div className="team-players" style={{ fontSize: '0.8rem' }}>
-                            <div>{card.teamB[0]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamB[0]?.dupr || 0).toFixed(1)})</span></div>
-                            <div>{card.teamB[1]?.name || 'TBD'} <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({Number(card.teamB[1]?.dupr || 0).toFixed(1)})</span></div>
+                            {renderPlayer(card.teamB[0], card, idx, 'right')}
+                            {renderPlayer(card.teamB[1], card, idx, 'right')}
                           </div>
                         </div>
                       </div>

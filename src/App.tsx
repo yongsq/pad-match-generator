@@ -376,11 +376,109 @@ function App() {
       return updatedMatch;
     }));
 
-    // Sync reshuffled unsaved match to cloud
-    if (activeSession) {
-      saveMatch(activeSession.id, updatedMatch).catch(console.error);
+  };
+
+  const handleSwapPlayer = (matchIdx: number, swapOutId: string, swapInId: string) => {
+    const match = currentRoundResults[matchIdx];
+    if (match.isSaved) return;
+
+    const swapOutPlayerObj = players.find(p => p.id === swapOutId);
+    const swapInPlayerObj = players.find(p => p.id === swapInId);
+    if (!swapOutPlayerObj || !swapInPlayerObj) return;
+
+    const otherMatchIdx = currentRoundResults.findIndex(m => 
+      m.round === match.round && 
+      (m.teamA[0].id === swapInId || m.teamA[1].id === swapInId || m.teamB[0].id === swapInId || m.teamB[1].id === swapInId)
+    );
+
+    let nextRoundResults = [...currentRoundResults];
+    let nextPlayers = [...players];
+
+    const replacePlayerInMatch = (m: MatchCardData, oldId: string, newPlayer: Player): MatchCardData => {
+      const teamA = [...m.teamA] as [Player, Player];
+      const teamB = [...m.teamB] as [Player, Player];
+      if (teamA[0].id === oldId) teamA[0] = newPlayer;
+      else if (teamA[1].id === oldId) teamA[1] = newPlayer;
+      else if (teamB[0].id === oldId) teamB[0] = newPlayer;
+      else if (teamB[1].id === oldId) teamB[1] = newPlayer;
+      return { ...m, teamA, teamB };
+    };
+
+    if (otherMatchIdx !== -1) {
+      // Cross-court Swap
+      const otherMatch = currentRoundResults[otherMatchIdx];
+      const updatedMatch = replacePlayerInMatch(match, swapOutId, swapInPlayerObj);
+      const updatedOtherMatch = replacePlayerInMatch(otherMatch, swapInId, swapOutPlayerObj);
+
+      nextRoundResults[matchIdx] = updatedMatch;
+      nextRoundResults[otherMatchIdx] = updatedOtherMatch;
+
+      setCurrentRoundResults(nextRoundResults);
+
+      if (activeSession) {
+        saveMatch(activeSession.id, updatedMatch).catch(console.error);
+        saveMatch(activeSession.id, updatedOtherMatch).catch(console.error);
+      }
+    } else {
+      // Sit-out Swap
+      const updatedMatch = replacePlayerInMatch(match, swapOutId, swapInPlayerObj);
+      nextRoundResults[matchIdx] = updatedMatch;
+
+      setCurrentRoundResults(nextRoundResults);
+
+      // Adjust games played
+      nextPlayers = nextPlayers.map(p => {
+        if (p.id === swapOutId) {
+          return { ...p, gamesPlayed: Math.max(0, p.gamesPlayed - 1) };
+        }
+        if (p.id === swapInId) {
+          return { ...p, gamesPlayed: p.gamesPlayed + 1 };
+        }
+        return p;
+      });
+
+      // Recalculate consecutiveSitOuts for all players dynamically
+      const maxRound = Math.max(
+        results.reduce((max, r) => Math.max(max, r.round), 0),
+        nextRoundResults.reduce((max, r) => Math.max(max, r.round), 0),
+        0
+      );
+
+      nextPlayers = nextPlayers.map(p => {
+        if (!p.isActive) return p;
+
+        let lastPlayedRound = 0;
+
+        results.forEach(r => {
+          const played = [...r.teamA, ...r.teamB].some(px => px.id === p.id);
+          if (played && r.round > lastPlayedRound) {
+            lastPlayedRound = r.round;
+          }
+        });
+
+        nextRoundResults.forEach(m => {
+          const played = [...m.teamA, ...m.teamB].some(px => px.id === p.id);
+          if (played && m.round > lastPlayedRound) {
+            lastPlayedRound = m.round;
+          }
+        });
+
+        return {
+          ...p,
+          consecutiveSitOuts: lastPlayedRound === 0 ? maxRound : maxRound - lastPlayedRound
+        };
+      });
+
+      setPlayers(nextPlayers);
+
+      if (activeSession) {
+        saveMatch(activeSession.id, updatedMatch).catch(console.error);
+        const settings = { courts: courts === '' ? 1 : courts, isEndlessMode, targetRounds, maxPartnerGap };
+        updateTournamentState(activeSession.id, nextPlayers, settings).catch(console.error);
+      }
     }
   };
+
 
   const handleSaveResult = (idx: number) => {
     const match = currentRoundResults[idx];
@@ -760,6 +858,8 @@ function App() {
       
       <CurrentRound 
         matches={currentRoundResults}
+        players={players}
+        onSwapPlayer={handleSwapPlayer}
         onUpdateScore={handleUpdateScore}
         onBlurScore={handleBlurScore}
         onReshuffleMatch={handleReshuffleMatch}
