@@ -6,6 +6,7 @@ export interface MasterPlayer {
   name: string;
   dupr_id: string | null;
   last_known_dupr: number | null;
+  gender?: string | null;
 }
 
 // 1. Sync a player to the Master Roster (Upsert)
@@ -13,14 +14,19 @@ export async function syncToMasterRoster(player: Player) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
+  const payload: any = {
+    name: player.name,
+    dupr_id: player.duprId || null,
+    last_known_dupr: typeof player.dupr === 'number' ? player.dupr : null,
+    user_id: user.id
+  };
+  if (player.gender) {
+    payload.gender = player.gender;
+  }
+
   const { error } = await supabase
     .from('master_roster')
-    .upsert({
-      name: player.name,
-      dupr_id: player.duprId || null,
-      last_known_dupr: typeof player.dupr === 'number' ? player.dupr : null,
-      user_id: user.id
-    }, {
+    .upsert(payload, {
       onConflict: 'name,user_id'
     });
 
@@ -31,7 +37,7 @@ export async function syncToMasterRoster(player: Player) {
 export async function lookupMasterPlayers(names: string[]): Promise<MasterPlayer[]> {
   const { data, error } = await supabase
     .from('master_roster')
-    .select('id, name, dupr_id, last_known_dupr')
+    .select('id, name, dupr_id, last_known_dupr, gender')
     .in('name', names);
 
   if (error) {
@@ -42,12 +48,13 @@ export async function lookupMasterPlayers(names: string[]): Promise<MasterPlayer
   return data as MasterPlayer[];
 }
 
-// 3. Search Master Roster (for manual autocomplete)
+// 3. Search Master Roster (for real-time autocomplete)
 export async function searchMasterRoster(query: string): Promise<MasterPlayer[]> {
+  if (!query || query.trim().length === 0) return [];
   const { data, error } = await supabase
     .from('master_roster')
-    .select('*')
-    .ilike('name', `%${query}%`)
+    .select('id, name, dupr_id, last_known_dupr, gender')
+    .ilike('name', `%${query.trim()}%`)
     .limit(5);
 
   if (error) return [];
@@ -143,12 +150,10 @@ export async function saveMatch(tournamentId: string, match: any, retryCount = 0
   if (error) {
     console.error(`Error saving match (Attempt ${retryCount + 1}):`, error.message);
     if (retryCount < 3) {
-      // Exponential backoff: 2s, 4s, 8s
       const delay = Math.pow(2, retryCount) * 2000;
       await new Promise(res => setTimeout(res, delay));
       return saveMatch(tournamentId, match, retryCount + 1);
     } else {
-      // If we fail after 3 retries, notify the user but don't crash
       alert(`CLOUD SYNC FAILED after 4 attempts.\n\nYour match data has been saved LOCALLY on this device. Please do not clear your browser cache.`);
       return false;
     }
@@ -190,4 +195,3 @@ export async function deleteTournament(id: string) {
 
   if (error) console.error('Error deleting tournament:', error.message);
 }
-

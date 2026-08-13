@@ -12,8 +12,9 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [matchType, setMatchType] = useState<'D' | 'S'>('D');
-  const [scoreType, setScoreType] = useState<'RALLY' | 'SIDEOUT'>('RALLY');
+  const [scoreType, setScoreType] = useState<'RALLY' | 'SIDEOUT'>('SIDEOUT');
   const [customEvent, setCustomEvent] = useState(sessionTitle);
+  const [location, setLocation] = useState('PAD Pickleball Premiere Hotel');
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -27,7 +28,9 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
     try {
       const namesSet = new Set<string>();
       results.forEach(m => {
-        [...m.teamA, ...m.teamB].forEach(p => namesSet.add(p.name));
+        [...m.teamA, ...m.teamB].forEach(p => {
+          if (p && p.name) namesSet.add(p.name);
+        });
       });
       const names = Array.from(namesSet);
 
@@ -38,26 +41,55 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
       });
 
       const headers = [
-        'matchType', 'scoreType', 'event', 'date',
-        'playerA1', 'playerA1DuprId', 'playerA2', 'playerA2DuprId',
-        'playerB1', 'playerB1DuprId', 'playerB2', 'playerB2DuprId',
-        'teamAGame1', 'teamBGame1', 'teamAGame2', 'teamBGame2',
-        'teamAGame3', 'teamBGame3', 'teamAGame4', 'teamBGame4',
-        'teamAGame5', 'teamBGame5'
+        'matchType', 'event', 'date',
+        'playerA1', 'playerA1DuprId', 'playerA1ExternalId',
+        'playerA2', 'playerA2DuprId', 'playerA2ExternalId',
+        'playerB1', 'playerB1DuprId', 'playerB1ExternalId',
+        'playerB2', 'playerB2DuprId', 'playerB2ExternalId',
+        'teamAGame1', 'teamBGame1',
+        'teamAGame2', 'teamBGame2',
+        'teamAGame3', 'teamBGame3',
+        'teamAGame4', 'teamBGame4',
+        'teamAGame5', 'teamBGame5',
+        'location', 'scoreType'
       ];
 
       const today = new Date().toISOString().split('T')[0];
 
+      const escapeCsv = (val: any) => {
+        const str = String(val ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
       const rows = results.map(m => {
-        const getHealedId = (p: Player) => idMap.get(p.name.toLowerCase().trim()) || p.duprId || '';
+        const getHealedId = (p?: Player) => p ? (idMap.get(p.name.toLowerCase().trim()) || p.duprId || '') : '';
+        const isSingles = matchType === 'S' || m.teamA[0]?.id === m.teamA[1]?.id;
+
+        const pA1Name = m.teamA[0]?.name || '';
+        const pA1Id = getHealedId(m.teamA[0]);
+        const pA2Name = isSingles ? '' : (m.teamA[1]?.name || '');
+        const pA2Id = isSingles ? '' : getHealedId(m.teamA[1]);
+
+        const pB1Name = m.teamB[0]?.name || '';
+        const pB1Id = getHealedId(m.teamB[0]);
+        const pB2Name = isSingles ? '' : (m.teamB[1]?.name || '');
+        const pB2Id = isSingles ? '' : getHealedId(m.teamB[1]);
+
         const row = [
-          matchType, scoreType, customEvent, today,
-          m.teamA[0].name, getHealedId(m.teamA[0]),
-          m.teamA[1].name, getHealedId(m.teamA[1]),
-          m.teamB[0].name, getHealedId(m.teamB[0]),
-          m.teamB[1].name, getHealedId(m.teamB[1]),
+          isSingles ? 'S' : 'D',
+          escapeCsv(customEvent),
+          today,
+          escapeCsv(pA1Name), pA1Id, '',
+          escapeCsv(pA2Name), pA2Id, '',
+          escapeCsv(pB1Name), pB1Id, '',
+          escapeCsv(pB2Name), pB2Id, '',
           m.scoreA, m.scoreB,
-          '', '', '', '', '', '', '', '' 
+          '', '', '', '', '', '', '', '',
+          escapeCsv(location),
+          scoreType
         ];
         return row.join(',');
       });
@@ -67,7 +99,7 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `Reclub_Results_${customEvent.replace(/\s+/g, '_')}.csv`);
+      link.setAttribute('download', `DUPR_Matches_${customEvent.replace(/\s+/g, '_')}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -116,7 +148,7 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}
             >
               {isExporting ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />}
-              {isExporting ? 'Healing...' : 'Export Reclub CSV'}
+              {isExporting ? 'Preparing...' : 'Export DUPR CSV'}
             </button>
           </div>
 
@@ -127,13 +159,17 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
               borderRadius: '8px', 
               marginBottom: '1rem',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: '1rem',
               border: '1px solid rgba(255,255,255,0.05)'
             }}>
               <div>
                 <label style={{ fontSize: '0.7rem', opacity: 0.5, display: 'block', marginBottom: '0.25rem' }}>Event Name</label>
                 <input className="input" value={customEvent} onChange={(e) => setCustomEvent(e.target.value)} style={{ width: '100%', height: '30px', fontSize: '0.8rem' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', opacity: 0.5, display: 'block', marginBottom: '0.25rem' }}>Location</label>
+                <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} style={{ width: '100%', height: '30px', fontSize: '0.8rem' }} />
               </div>
               <div>
                 <label style={{ fontSize: '0.7rem', opacity: 0.5, display: 'block', marginBottom: '0.25rem' }}>Match Type</label>
@@ -145,13 +181,13 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
               <div>
                 <label style={{ fontSize: '0.7rem', opacity: 0.5, display: 'block', marginBottom: '0.25rem' }}>Scoring</label>
                 <select className="input" value={scoreType} onChange={(e) => setScoreType(e.target.value as 'RALLY' | 'SIDEOUT')} style={{ width: '100%', height: '30px', fontSize: '0.8rem' }}>
-                  <option value="RALLY">Rally</option>
                   <option value="SIDEOUT">Sideout</option>
+                  <option value="RALLY">Rally</option>
                 </select>
               </div>
             </div>
           )}
-          
+
           <div className="table-wrapper">
             <table>
               <thead>
@@ -159,28 +195,31 @@ export const ResultsLog: React.FC<ResultsLogProps> = ({ results, sessionTitle = 
                   <th>Round</th>
                   <th>Court</th>
                   <th>Team A</th>
-                  <th>Score</th>
                   <th>Team B</th>
+                  <th>Score</th>
                 </tr>
               </thead>
               <tbody>
-                {results.map((r, idx) => (
-                  <tr key={idx}>
-                    <td style={{ fontWeight: 600, color: 'var(--primary-color)' }}>R{r.round}</td>
-                    <td>{r.court}</td>
-                    <td>
-                      <span style={typeof r.scoreA === 'number' && typeof r.scoreB === 'number' && r.scoreA > r.scoreB ? { fontWeight: 'bold', color: 'var(--accent-color)' } : {}}>
-                        {r.teamA[0]?.name} / {r.teamA[1]?.name}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 'bold' }}>{r.scoreA} - {r.scoreB}</td>
-                    <td>
-                      <span style={typeof r.scoreA === 'number' && typeof r.scoreB === 'number' && r.scoreB > r.scoreA ? { fontWeight: 'bold', color: 'var(--accent-color)' } : {}}>
-                        {r.teamB[0]?.name} / {r.teamB[1]?.name}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {results.map((res, idx) => {
+                  const isSingles = res.teamA[0]?.id === res.teamA[1]?.id;
+                  return (
+                    <tr key={idx}>
+                      <td>Round {res.round}</td>
+                      <td>Court {res.court}</td>
+                      <td>
+                        {res.teamA[0]?.name}
+                        {!isSingles && ` & ${res.teamA[1]?.name}`}
+                      </td>
+                      <td>
+                        {res.teamB[0]?.name}
+                        {!isSingles && ` & ${res.teamB[1]?.name}`}
+                      </td>
+                      <td style={{ fontWeight: 'bold' }}>
+                        {res.scoreA} - {res.scoreB}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

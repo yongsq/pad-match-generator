@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Users, UserPlus, Trash2, Link, Hash, AlertCircle } from 'lucide-react';
 import type { Player } from '../lib/matchLogic';
+import { searchMasterRoster, type MasterPlayer } from '../lib/db';
 
 interface PlayerRosterProps {
   players: Player[];
   updatePlayer: (id: string, partial: Partial<Player>) => void;
-  addPlayer: (name: string, dupr: number | '') => void;
+  addPlayer: (name: string, dupr: number | '', duprId?: string, gender?: 'M' | 'F' | '') => void;
   removePlayer: (id: string) => void;
   onSyncRoster: () => void;
 }
@@ -13,12 +14,56 @@ interface PlayerRosterProps {
 export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, onSyncRoster }: PlayerRosterProps) {
   const [newName, setNewName] = useState('');
   const [newDupr, setNewDupr] = useState<string>('');
+  const [newDuprId, setNewDuprId] = useState<string>('');
+  const [newGender, setNewGender] = useState<'M' | 'F' | ''>('');
+
+  const [suggestions, setSuggestions] = useState<MasterPlayer[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleNameChange = async (val: string) => {
+    setNewName(val);
+    if (val.trim().length >= 2) {
+      const results = await searchMasterRoster(val);
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = (s: MasterPlayer) => {
+    setNewName(s.name);
+    setNewDupr(s.last_known_dupr !== null ? String(s.last_known_dupr) : '');
+    setNewDuprId(s.dupr_id || '');
+    setNewGender((s.gender as 'M' | 'F') || '');
+    setShowSuggestions(false);
+  };
 
   const handleAdd = () => {
     if (newName.trim()) {
-      addPlayer(newName.trim(), newDupr === '' ? '' : parseFloat(newDupr));
+      addPlayer(
+        newName.trim(), 
+        newDupr === '' ? '' : parseFloat(newDupr),
+        newDuprId.trim() || undefined,
+        newGender || undefined
+      );
       setNewName('');
       setNewDupr('');
+      setNewDuprId('');
+      setNewGender('');
+      setShowSuggestions(false);
       onSyncRoster();
     }
   };
@@ -32,13 +77,85 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
         </h2>
       </div>
 
-      <div className="form-row" style={{ marginBottom: '1rem', background: 'rgba(0,0,0,0.1)', padding: '1rem', borderRadius: '0.5rem' }}>
-        <input 
+      <div 
+        className="form-row" 
+        style={{ 
+          marginBottom: '1rem', 
+          background: 'rgba(0,0,0,0.1)', 
+          padding: '1rem', 
+          borderRadius: '0.5rem',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}
+      >
+        <div style={{ position: 'relative', flex: 1, minWidth: '180px' }} ref={autocompleteRef}>
+          <input 
+            className="input" 
+            placeholder="New Player Name" 
+            value={newName} 
+            onChange={e => handleNameChange(e.target.value)} 
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+            style={{ width: '100%' }}
+          />
+
+          {showSuggestions && (
+            <div 
+              className="glass-panel"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'rgba(15, 23, 42, 0.98)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '8px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                zIndex: 1000,
+                boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                padding: '0.4rem 0',
+                marginTop: '4px'
+              }}
+            >
+              <div style={{ padding: '0.25rem 0.6rem', fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--accent-color)', borderBottom: '1px solid rgba(255,255,255,0.1)', textTransform: 'uppercase' }}>
+                Master Roster Suggestions
+              </div>
+              {suggestions.map(s => (
+                <div 
+                  key={s.id || s.name}
+                  className="dropdown-item"
+                  onClick={() => handleSelectSuggestion(s)}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ fontWeight: 500 }}>{s.name}</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
+                    {s.gender ? `[${s.gender}] ` : ''}DUPR: {s.last_known_dupr ?? 'N/A'} {s.dupr_id ? `(${s.dupr_id})` : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <select 
           className="input" 
-          placeholder="New Player Name" 
-          value={newName} 
-          onChange={e => setNewName(e.target.value)} 
-        />
+          value={newGender} 
+          onChange={e => setNewGender(e.target.value as 'M' | 'F' | '')}
+          style={{ width: '70px', flex: 'none', height: '38px', fontSize: '0.85rem' }}
+          title="Gender"
+        >
+          <option value="">-</option>
+          <option value="M">M</option>
+          <option value="F">F</option>
+        </select>
+
         <input 
           className="input" 
           type="number" 
@@ -46,8 +163,18 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
           placeholder="DUPR (e.g. 3.5)" 
           value={newDupr} 
           onChange={e => setNewDupr(e.target.value)}
-          style={{ width: '120px', flex: 'none' }}
+          style={{ width: '110px', flex: 'none' }}
         />
+
+        <input 
+          className="input" 
+          placeholder="6-CHAR ID" 
+          value={newDuprId} 
+          maxLength={6}
+          onChange={e => setNewDuprId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+          style={{ width: '100px', flex: 'none', fontFamily: 'monospace', textTransform: 'uppercase' }}
+        />
+
         <button className="btn btn-accent" onClick={handleAdd} disabled={!newName.trim()}>
           <UserPlus size={16} />
           Add Player
@@ -60,7 +187,8 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
             <thead>
               <tr>
                 <th>Name</th>
-                 <th>DUPR</th>
+                <th>Gender</th>
+                <th>DUPR</th>
                 <th title="DUPR ID for bulk upload">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <Hash size={14} /> ID (6-char)
@@ -84,6 +212,21 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
                   <tr key={p.id} style={{ opacity: p.isActive ? 1 : 0.6 }}>
                     <td style={{ fontWeight: 500 }}>{p.name}</td>
                     <td>
+                      <select 
+                        className="input" 
+                        style={{ width: '60px', padding: '0.25rem', height: '30px', fontSize: '0.8rem' }}
+                        value={p.gender || ''}
+                        onChange={e => {
+                          updatePlayer(p.id, { gender: e.target.value as 'M' | 'F' | '' });
+                          onSyncRoster();
+                        }}
+                      >
+                        <option value="">-</option>
+                        <option value="M">M</option>
+                        <option value="F">F</option>
+                      </select>
+                    </td>
+                    <td>
                       <input 
                         type="number" 
                         className="input" 
@@ -98,7 +241,7 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
                         <input 
                           className="input" 
                           style={{ 
-                            width: '110px', 
+                            width: '100px', 
                             padding: '0.25rem', 
                             height: '30px', 
                             fontSize: '0.85rem',
@@ -129,7 +272,7 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
                     <td>
                       <select 
                         className="input"
-                        style={{ width: '140px', padding: '0.25rem', height: '30px', fontSize: '0.8rem' }}
+                        style={{ width: '130px', padding: '0.25rem', height: '30px', fontSize: '0.8rem' }}
                         value={p.fixedPartnerId || ''}
                         onChange={e => {
                           updatePlayer(p.id, { fixedPartnerId: e.target.value || undefined });

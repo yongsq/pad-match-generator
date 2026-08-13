@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
-import type { Player, Matrix, MatchResult, MatchCardData } from './lib/matchLogic';
-import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry } from './lib/matchLogic';
+import type { Player, Matrix, MatchResult, MatchCardData, AlgorithmConfig } from './lib/matchLogic';
+import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry, DEFAULT_ALGORITHM_CONFIG } from './lib/matchLogic';
 import { Controls } from './components/Controls';
 import { PlayerRoster } from './components/PlayerRoster';
 import { CurrentRound } from './components/CurrentRound';
@@ -9,7 +9,7 @@ import { ResultsLog } from './components/ResultsLog';
 import { MatchSummary } from './components/MatchSummary';
 import { CourtSideDisplay } from './components/CourtSideDisplay';
 
-import { BookOpen, Target, AlertTriangle, ChevronDown, ChevronUp, LogOut, User, RefreshCw, LayoutGrid, Monitor } from 'lucide-react';
+import { BookOpen, Target, AlertTriangle, ChevronDown, ChevronUp, LogOut, Monitor } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
@@ -41,6 +41,8 @@ function App() {
   const [isEndlessMode, setIsEndlessMode] = useState<boolean>(true);
   const [targetRounds, setTargetRounds] = useState<number | ''>('');
   const [maxPartnerGap, setMaxPartnerGap] = useState<number | ''>('');
+  const [algorithmConfig, setAlgorithmConfig] = useState<AlgorithmConfig>(DEFAULT_ALGORITHM_CONFIG);
+
   const [loaded, setLoaded] = useState(false);
   const [showManifesto, setShowManifesto] = useState(false);
   const [showLimitations, setShowLimitations] = useState(false);
@@ -50,6 +52,19 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'online' | 'offline' | 'error'>('online');
   const [syncTrigger, setSyncTrigger] = useState(0);
+
+  // Sync maxPartnerGap into algorithmConfig bidirectionally
+  useEffect(() => {
+    if (maxPartnerGap !== algorithmConfig.maxPartnerGap) {
+      setAlgorithmConfig(prev => ({ ...prev, maxPartnerGap }));
+    }
+  }, [maxPartnerGap]);
+
+  useEffect(() => {
+    if (algorithmConfig.maxPartnerGap !== maxPartnerGap) {
+      setMaxPartnerGap(algorithmConfig.maxPartnerGap);
+    }
+  }, [algorithmConfig.maxPartnerGap]);
 
   // Online/Offline Listeners
   useEffect(() => {
@@ -77,32 +92,37 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // LocalStorage Persistence - Now Session Specific (handled in onSelectTournament)
-
+  // LocalStorage Persistence
   useEffect(() => {
     if (loaded && activeSession) {
       localStorage.setItem(`pad_session_${activeSession.id}`, JSON.stringify({
-        players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap
+        players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig
       }));
     }
-  }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap, loaded, activeSession]);
+  }, [players, courts, matrix, results, currentRoundResults, roundNumber, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig, loaded, activeSession]);
 
-  const latestStateRef = useRef({ players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession });
+  const latestStateRef = useRef({ players, courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig, activeSession });
   
   useEffect(() => {
-    latestStateRef.current = { players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession };
-  }, [players, courts, isEndlessMode, targetRounds, maxPartnerGap, activeSession]);
+    latestStateRef.current = { players, courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig, activeSession };
+  }, [players, courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig, activeSession]);
 
   // Deterministic Cloud Sync System
   useEffect(() => {
     if (syncTrigger > 0) {
       const state = latestStateRef.current;
       if (!state.activeSession) return;
-      const settings = { courts: state.courts, isEndlessMode: state.isEndlessMode, targetRounds: state.targetRounds, maxPartnerGap: state.maxPartnerGap };
+      const settings = { 
+        courts: state.courts, 
+        isEndlessMode: state.isEndlessMode, 
+        targetRounds: state.targetRounds, 
+        maxPartnerGap: state.maxPartnerGap,
+        algorithmConfig: state.algorithmConfig 
+      };
       console.log(`Syncing to cloud! Players length: ${state.players.length}`);
       updateTournamentState(state.activeSession.id, state.players, settings).catch(console.error);
     }
-  }, [syncTrigger]); // Only trigger when explicitly requested via onBlur or button clicks
+  }, [syncTrigger]);
 
   const triggerCloudSync = () => setSyncTrigger(t => t + 1);
 
@@ -141,7 +161,7 @@ function App() {
       if (!confirm('This will overwrite current participants. Continue?')) return;
     }
 
-    const defaultCourts = Math.max(1, Math.floor(parsedPlayers.length / 4));
+    const defaultCourts = Math.max(1, Math.floor(parsedPlayers.length / (algorithmConfig.matchType === 'singles' ? 2 : 4)));
     setCourts(defaultCourts);
     setMatrix({});
     setResults([]);
@@ -158,27 +178,27 @@ function App() {
         if (match) {
           return {
             ...p,
-            duprId: match.dupr_id || undefined,
-            dupr: p.dupr === '' ? (match.last_known_dupr ?? '') : p.dupr
+            duprId: match.dupr_id || p.duprId || undefined,
+            dupr: p.dupr === '' ? (match.last_known_dupr ?? '') : p.dupr,
+            gender: p.gender || (match.gender as 'M' | 'F' | '') || ''
           } as Player;
         }
         return p;
       });
       setPlayers(matchedPlayers);
       if (activeSession) {
-        updateTournamentState(activeSession.id, matchedPlayers, { courts: defaultCourts, isEndlessMode, targetRounds: '', maxPartnerGap }).catch(console.error);
+        updateTournamentState(activeSession.id, matchedPlayers, { courts: defaultCourts, isEndlessMode, targetRounds: '', maxPartnerGap, algorithmConfig }).catch(console.error);
       }
     } else {
       setPlayers(parsedPlayers);
       if (activeSession) {
-        updateTournamentState(activeSession.id, parsedPlayers, { courts: defaultCourts, isEndlessMode, targetRounds: '', maxPartnerGap }).catch(console.error);
+        updateTournamentState(activeSession.id, parsedPlayers, { courts: defaultCourts, isEndlessMode, targetRounds: '', maxPartnerGap, algorithmConfig }).catch(console.error);
       }
     }
   };
 
   // Roster Callbacks
-  const addPlayer = (name: string, dupr: number | '') => {
-    // Dynamic manual addition initializes gamesPlayed to the average active games, sitouts 0.
+  const addPlayer = (name: string, dupr: number | '', duprId?: string, gender?: 'M' | 'F' | '') => {
     const activePlayers = players.filter(p => p.isActive);
     const avgGames = activePlayers.length > 0 
       ? Math.floor(activePlayers.reduce((sum, p) => sum + p.gamesPlayed, 0) / activePlayers.length) 
@@ -194,6 +214,8 @@ function App() {
       id,
       name: name.trim(),
       dupr,
+      duprId,
+      gender: gender || '',
       isActive: true,
       gamesPlayed: avgGames,
       consecutiveSitOuts: 0
@@ -212,23 +234,18 @@ function App() {
       if (Object.prototype.hasOwnProperty.call(partial, 'fixedPartnerId')) {
         const newPartnerId = partial.fixedPartnerId ? partial.fixedPartnerId.toLowerCase().trim() : null;
         
-        // 1. Identify A and their old partner
         const playerA = next.find(p => p.id.toLowerCase().trim() === targetId);
         const oldPartnerId = playerA?.fixedPartnerId ? playerA.fixedPartnerId.toLowerCase().trim() : null;
 
-        // 2. Clear old links (Bidirectional)
         next = next.map(p => {
           const currentId = p.id.toLowerCase().trim();
           const currentPartnerId = p.fixedPartnerId ? p.fixedPartnerId.toLowerCase().trim() : null;
 
-          // If we are A's old partner, unlink from A
           if (oldPartnerId && currentId === oldPartnerId) return { ...p, fixedPartnerId: undefined };
-          // If we are B's current partner, unlink from B
           if (newPartnerId && currentPartnerId === newPartnerId) return { ...p, fixedPartnerId: undefined };
           return p;
         });
 
-        // 3. Set the new bidirectional link
         next = next.map(p => {
           const currentId = p.id.toLowerCase().trim();
           if (currentId === targetId) return { ...p, fixedPartnerId: partial.fixedPartnerId };
@@ -239,10 +256,8 @@ function App() {
         return next;
       }
 
-      // Normal non-link updates
       const updatedPlayers = next.map(p => p.id.toLowerCase().trim() === targetId ? { ...p, ...partial } : p);
       
-      // Background Sync for normal updates (only sync valid 6-char IDs or clearing)
       if (session) {
         const target = updatedPlayers.find(p => p.id.toLowerCase().trim() === targetId);
         if (target) {
@@ -256,6 +271,7 @@ function App() {
       return updatedPlayers;
     });
   };
+
   const removePlayer = (id: string) => {
     setPlayers(players.filter(p => p.id !== id));
   };
@@ -271,11 +287,10 @@ function App() {
     const numCourts = courts === '' ? 1 : courts;
 
     for (let i = 0; i < iterations; i++) {
-        const { upcomingMatches, updatedPlayers } = generateMatches(currentPls, numCourts, currentMtrx, currentRoundNum, maxPartnerGap);
+        const { upcomingMatches, updatedPlayers } = generateMatches(currentPls, numCourts, currentMtrx, currentRoundNum, algorithmConfig);
         currentPls = updatedPlayers;
         newMatches = [...newMatches, ...upcomingMatches];
         
-        // Simulate matrix update so next iteration avoids rematches
         upcomingMatches.forEach(m => {
             currentMtrx = updateMatrixWithResult(currentMtrx, m.teamA, m.teamB);
         });
@@ -284,11 +299,9 @@ function App() {
     }
 
     setPlayers(currentPls);
-    // Incrementally add to roster
     setCurrentRoundResults(prev => [...prev, ...newMatches]);
     setRoundNumber(currentRoundNum);
 
-    // Sync to cloud (newly generated unsaved matches)
     if (activeSession) {
       newMatches.forEach(m => {
         saveMatch(activeSession.id, m).catch(console.error);
@@ -304,7 +317,6 @@ function App() {
     const unsavedMatches = currentRoundResults.filter(m => !m.isSaved);
     const savedMatches = currentRoundResults.filter(m => m.isSaved);
 
-    // 1. Rollback player gamesPlayed and reset sitOuts
     const gamesToSubtract: Record<string, number> = {};
     unsavedMatches.forEach(m => {
       [...m.teamA, ...m.teamB].forEach(p => {
@@ -317,17 +329,13 @@ function App() {
        gamesPlayed: Math.max(0, p.gamesPlayed - (gamesToSubtract[p.id] || 0)),
        consecutiveSitOuts: 0 
     }));
-    
-    // 2. Matrix doesn't need rollback because it is only preserved in state upon 'Save'.
 
-    // 3. Rollback round number
     const maxSavedRound = [...results, ...savedMatches].reduce((max, r) => Math.max(max, r.round), 0);
     setRoundNumber(maxSavedRound + 1);
 
     setPlayers(restoredPlayers);
     setCurrentRoundResults(savedMatches);
 
-    // Delete unsaved matches from cloud
     if (activeSession) {
       deleteUnsavedMatches(activeSession.id).catch(console.error);
     }
@@ -341,7 +349,6 @@ function App() {
   };
 
   const handleBlurScore = (idx: number) => {
-    // Sync score update to cloud when user finishes typing and clicks away
     if (activeSession) {
       saveMatch(activeSession.id, currentRoundResults[idx]).catch(console.error);
     }
@@ -352,15 +359,13 @@ function App() {
     if (match.isSaved) return;
 
     const playersInMatch = [...match.teamA, ...match.teamB];
-    const configs = getMatchConfigurations(playersInMatch, matrix, maxPartnerGap);
+    const configs = getMatchConfigurations(playersInMatch, matrix, algorithmConfig);
     
-    // Find index of current config
     const currentConfigIdx = configs.findIndex(c => 
       (c.teamA[0].id === match.teamA[0].id && c.teamA[1].id === match.teamA[1].id) ||
       (c.teamA[0].id === match.teamA[1].id && c.teamA[1].id === match.teamA[0].id)
     );
 
-    // Pick next config
     const nextConfigIdx = (currentConfigIdx + 1) % configs.length;
     const nextConfig = configs[nextConfigIdx];
 
@@ -376,6 +381,9 @@ function App() {
       return updatedMatch;
     }));
 
+    if (activeSession) {
+      saveMatch(activeSession.id, updatedMatch).catch(console.error);
+    }
   };
 
   const handleSwapPlayer = (matchIdx: number, swapOutId: string, swapInId: string) => {
@@ -426,7 +434,6 @@ function App() {
 
       setCurrentRoundResults(nextRoundResults);
 
-      // Adjust games played
       nextPlayers = nextPlayers.map(p => {
         if (p.id === swapOutId) {
           return { ...p, gamesPlayed: Math.max(0, p.gamesPlayed - 1) };
@@ -437,7 +444,6 @@ function App() {
         return p;
       });
 
-      // Recalculate consecutiveSitOuts for all players dynamically
       const maxRound = Math.max(
         results.reduce((max, r) => Math.max(max, r.round), 0),
         nextRoundResults.reduce((max, r) => Math.max(max, r.round), 0),
@@ -473,18 +479,16 @@ function App() {
 
       if (activeSession) {
         saveMatch(activeSession.id, updatedMatch).catch(console.error);
-        const settings = { courts: courts === '' ? 1 : courts, isEndlessMode, targetRounds, maxPartnerGap };
+        const settings = { courts: courts === '' ? 1 : courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig };
         updateTournamentState(activeSession.id, nextPlayers, settings).catch(console.error);
       }
     }
   };
 
-
   const handleSaveResult = (idx: number) => {
     const match = currentRoundResults[idx];
     
     if (match.isSaved) {
-      // Allow editing: update existing log
       const updatedResults = results.map(r => 
         (r.round === match.round && r.court === match.court)
           ? { ...r, scoreA: match.scoreA, scoreB: match.scoreB }
@@ -492,17 +496,14 @@ function App() {
       );
       setResults(updatedResults);
       
-      // Update Cloud in background
       if (activeSession) {
         saveMatch(activeSession.id, { ...match, isSaved: true }).catch(console.error);
       }
       return;
     }
 
-    // 1. Mark as saved locally
     setCurrentRoundResults(prev => prev.map((m, i) => i === idx ? { ...m, isSaved: true } : m));
 
-    // 2. Add to logs
     const newResult = {
       round: match.round,
       court: match.court,
@@ -513,15 +514,12 @@ function App() {
     };
     setResults(prev => [...prev, newResult]);
 
-    // 3. Update matrix
     setMatrix(prevMatrix => updateMatrixWithResult(prevMatrix, match.teamA, match.teamB));
 
-    // 4. Background Cloud Sync (with retries)
     if (activeSession) {
       saveMatch(activeSession.id, { ...match, isSaved: true }).catch(console.error);
     }
   };
-
 
   const handleCloseSession = () => {
     if (!confirm("Close current session and return to Dashboard? Data is saved to Cloud.")) return;
@@ -533,12 +531,10 @@ function App() {
     setCurrentRoundResults([]);
     setRoundNumber(1);
     setTargetRounds('');
-    // We do NOT clear the local storage here, so that if they return to this session, the roster/settings remain.
   };
 
   if (authLoading) return <div style={{color:'white', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Verifying Session...</div>;
   
-  // Only allow sessions with a real email (no Guests)
   if (!session || !session.user.email) {
     return <Auth />;
   }
@@ -549,7 +545,6 @@ function App() {
       setLoaded(false);
       
       if (isNew) {
-        // Brand new session - clear ALL previous states
         setPlayers([]);
         setCourts('');
         setMatrix({});
@@ -557,9 +552,9 @@ function App() {
         setCurrentRoundResults([]);
         setRoundNumber(1);
         setTargetRounds('');
+        setAlgorithmConfig(DEFAULT_ALGORITHM_CONFIG);
         localStorage.removeItem('pickleballState');
       } else {
-        // Try to load from LocalStorage first (preserves roster, settings, unsaved matches)
         const saved = localStorage.getItem(`pad_session_${s.id}`);
         let localData = null;
         if (saved) {
@@ -573,16 +568,15 @@ function App() {
             setRoundNumber(localData.roundNumber || 1);
             setIsEndlessMode(localData.isEndlessMode ?? true);
             setTargetRounds(localData.targetRounds || '');
-            setMaxPartnerGap(localData.maxPartnerGap || 2);
+            setMaxPartnerGap(localData.maxPartnerGap || '');
+            if (localData.algorithmConfig) setAlgorithmConfig(localData.algorithmConfig);
           } catch (e) {
             console.error(e);
           }
         }
 
-        // Fetch cloud matches to ensure we have the latest
         const matches = await getSessionMatches(s.id);
         
-        // If Cloud has roster/settings, and we don't have localData (or we want to prioritize cloud), merge it
         if (!localData && s.roster) {
            let r = s.roster;
            try { if (typeof r === 'string') r = JSON.parse(r); } catch(e) {}
@@ -595,149 +589,65 @@ function App() {
              setCourts(set.courts || '');
              setIsEndlessMode(set.isEndlessMode ?? true);
              setTargetRounds(set.targetRounds || '');
-             setMaxPartnerGap(set.maxPartnerGap || 2);
+             setMaxPartnerGap(set.maxPartnerGap || '');
+             if (set.algorithmConfig) setAlgorithmConfig(set.algorithmConfig);
            }
         } else if (localData && (!s.roster || (Array.isArray(s.roster) && s.roster.length === 0))) {
-           // Backfill Migration: We have local data but cloud is empty. Push it up instantly.
-           const settings = { courts: localData.courts, isEndlessMode: localData.isEndlessMode, targetRounds: localData.targetRounds, maxPartnerGap: localData.maxPartnerGap };
-           updateTournamentState(s.id, localData.players || [], settings).catch(console.error);
+           updateTournamentState(s.id, localData.players || [], { 
+             courts: localData.courts || '', 
+             isEndlessMode: localData.isEndlessMode ?? true,
+             targetRounds: localData.targetRounds || '',
+             maxPartnerGap: localData.maxPartnerGap || '',
+             algorithmConfig: localData.algorithmConfig || DEFAULT_ALGORITHM_CONFIG
+           }).catch(console.error);
         }
 
-        if (matches && matches.length > 0) {
-          const formatted = matches.map((m: any) => ({
-            round: m.round,
-            court: m.court,
-            teamA: m.team_a,
-            teamB: m.team_b,
-            scoreA: (m.score_a === null || m.score_a === -1) ? '' : m.score_a,
-            scoreB: (m.score_b === null || m.score_b === -1) ? '' : m.score_b,
-            isSaved: m.is_saved
-          }));
+        if (Array.isArray(matches) && matches.length > 0) {
+          const reconstructedResults: MatchResult[] = [];
+          const reconstructedCurrent: MatchCardData[] = [];
+          let maxRoundNum = 0;
+          let tempMatrix: Matrix = {};
 
-          const cloudSavedMatches = formatted.filter((f: any) => f.isSaved);
-          const cloudUnsavedMatches = formatted.filter((f: any) => !f.isSaved);
+          matches.sort((a, b) => a.round !== b.round ? a.round - b.round : a.court - b.court);
 
-          if (!localData) {
-            // No local data, rebuild entirely from cloud
-            setResults(cloudSavedMatches);
-            
-            let mtrx = {};
-            cloudSavedMatches.forEach((matchResult: any) => {
-              mtrx = updateMatrixWithResult(mtrx, matchResult.teamA, matchResult.teamB);
-            });
-            setMatrix(mtrx);
+          matches.forEach(m => {
+            const card: MatchCardData = {
+              round: m.round,
+              court: m.court,
+              teamA: m.team_a,
+              teamB: m.team_b,
+              scoreA: m.score_a === -1 ? '' : m.score_a,
+              scoreB: m.score_b === -1 ? '' : m.score_b,
+              isSaved: m.is_saved
+            };
 
-            const unsavedWithDebug = cloudUnsavedMatches.map((m: any) => attachDebugInfo(m, mtrx));
-            setCurrentRoundResults(unsavedWithDebug);
+            reconstructedCurrent.push(card);
 
-            const maxRound = formatted.reduce((max: number, m: any) => Math.max(max, m.round), 0);
-            setRoundNumber(maxRound + 1);
-
-            // Only set players from match history if the cloud roster was empty
-            if (!s.roster || s.roster.length === 0) {
-              const participantMap = new Map<string, Player>();
-              formatted.forEach((m: any) => {
-                [...m.teamA, ...m.teamB].forEach(p => {
-                  if (!participantMap.has(p.id)) participantMap.set(p.id, p);
-                });
+            if (m.is_saved) {
+              reconstructedResults.push({
+                round: m.round,
+                court: m.court,
+                teamA: m.team_a,
+                teamB: m.team_b,
+                scoreA: m.score_a === -1 ? '' : m.score_a,
+                scoreB: m.score_b === -1 ? '' : m.score_b
               });
-              if (participantMap.size > 0) {
-                setPlayers(Array.from(participantMap.values()));
-              }
-            }
-          } else {
-            // Smart Merge: We have local data, but cloud might have new matches from another device
-            let updatedResults = [...(localData.results || [])];
-            let changed = false;
-
-            cloudSavedMatches.forEach((cloudMatch: any) => {
-              const existingIdx = updatedResults.findIndex(r => r.round === cloudMatch.round && r.court === cloudMatch.court);
-              if (existingIdx >= 0) {
-                 // Check if cloud score differs from local (e.g. edited on another device)
-                 if (updatedResults[existingIdx].scoreA !== cloudMatch.scoreA || updatedResults[existingIdx].scoreB !== cloudMatch.scoreB) {
-                    updatedResults[existingIdx] = cloudMatch;
-                    changed = true;
-                 }
-              } else {
-                 // Cloud has a match that local doesn't have
-                 updatedResults.push(cloudMatch);
-                 changed = true;
-              }
-            });
-
-            if (changed) {
-               setResults(updatedResults);
-               // Rebuild matrix
-               let mtrx = {};
-               updatedResults.forEach(r => {
-                 mtrx = updateMatrixWithResult(mtrx, r.teamA, r.teamB);
-               });
-               setMatrix(mtrx);
+              tempMatrix = updateMatrixWithResult(tempMatrix, m.team_a, m.team_b);
             }
 
-            const currentMatrix = changed ? (function(){
-               let mtrx = {};
-               updatedResults.forEach(r => {
-                 mtrx = updateMatrixWithResult(mtrx, r.teamA, r.teamB);
-               });
-               return mtrx;
-            })() : (localData.matrix || {});
+            if (m.round > maxRoundNum) maxRoundNum = m.round;
+          });
 
-            // Sync Unsaved Matches from Cloud
-            const allCloudMatches = [...cloudSavedMatches, ...cloudUnsavedMatches];
-            const maxCloudRound = allCloudMatches.reduce((max: number, m: any) => Math.max(max, m.round), 0);
-            
-            if (cloudUnsavedMatches.length > 0) {
-               // Deduplicate unsaved matches (fixes race condition ghosts)
-               const unsavedMap = new Map();
-               cloudUnsavedMatches.forEach((m: any) => {
-                 unsavedMap.set(`${m.round}-${m.court}`, attachDebugInfo(m, currentMatrix));
-               });
-               const finalUnsaved = Array.from(unsavedMap.values());
-               
-               setCurrentRoundResults(finalUnsaved);
-               setRoundNumber(maxCloudRound + 1);
-            } else if (maxCloudRound >= (localData.roundNumber || 1)) {
-               // Cloud has advanced the round and there are no unsaved matches
-               setCurrentRoundResults([]);
-               setRoundNumber(maxCloudRound + 1);
-            } else if (maxCloudRound === (localData.roundNumber || 1) - 1 && localData.currentRoundResults?.length > 0) {
-               // Local thinks there's an unsaved round, but cloud says it's deleted
-               setCurrentRoundResults([]);
-               setRoundNumber(maxCloudRound + 1);
-            } else if (localData.currentRoundResults?.length > 0) {
-               // Self-heal: Cloud has no unsaved matches, but local does. Push them up!
-               const localUnsaved = localData.currentRoundResults.filter((m: any) => !m.isSaved);
-               setCurrentRoundResults(localUnsaved);
-               localUnsaved.forEach((m: MatchCardData) => {
-                 saveMatch(s.id, m).catch(console.error);
-               });
-            }
-
-            if (changed || cloudUnsavedMatches.length > 0) {
-               // Merge any new players from cloud that might be missing locally
-               const participantMap = new Map<string, Player>();
-               if (localData.players) {
-                 localData.players.forEach((p: Player) => participantMap.set(p.id, p));
-               }
-               formatted.forEach((m: any) => {
-                 [...m.teamA, ...m.teamB].forEach(p => {
-                   if (!participantMap.has(p.id)) participantMap.set(p.id, p);
-                 });
-               });
-               setPlayers(Array.from(participantMap.values()));
-            }
-
-
-          }
+          setResults(reconstructedResults);
+          setCurrentRoundResults(reconstructedCurrent);
+          setMatrix(tempMatrix);
+          setRoundNumber(maxRoundNum > 0 ? maxRoundNum + 1 : 1);
         }
       }
-
+      
       setLoaded(true);
     }} />;
   }
-
-  if (!loaded) return <div style={{color:'white'}}>Loading...</div>;
 
   if (isTVWindow) {
     return <CourtSideDisplay />;
@@ -745,35 +655,28 @@ function App() {
 
   return (
     <div className="app-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button 
-            onClick={() => setActiveSession(null)}
-            className="btn"
-            style={{ background: 'rgba(255, 255, 255, 0.05)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <LayoutGrid size={16} /> Dashboard
-          </button>
-          {currentRoundResults.length > 0 && (
-            <button 
-              onClick={() => window.open(window.location.origin + '?tv=1', 'PAD_TV', 'width=1200,height=800')}
-              className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <Monitor size={16} /> Open TV View
-            </button>
-          )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.8)', padding: '0.75rem 1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className={`sync-dot ${syncStatus}`} title={`Status: ${syncStatus}`} />
+          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{activeSession?.name}</span>
+          <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>({players.length} Players)</span>
         </div>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', opacity: 0.7 }}>
-            <User size={14} /> {session.user.email}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button 
-            onClick={() => supabase.auth.signOut()}
-            className="btn"
-            style={{ background: 'rgba(255, 255, 255, 0.05)', fontSize: '0.75rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            className="btn btn-secondary"
+            onClick={() => window.open(`${window.location.origin}?tv=1`, '_blank')}
+            style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <LogOut size={14} /> Logout
+            <Monitor size={14} />
+            TV Display
+          </button>
+          <button 
+            className="btn btn-ghost" 
+            onClick={handleCloseSession}
+            style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <LogOut size={14} />
+            Switch Session
           </button>
         </div>
       </div>
@@ -793,7 +696,7 @@ function App() {
           <img src="/pad-logo.png" alt="PAD Pickleball" style={{ height: '60px', objectFit: 'contain' }} />
         </div>
         <h1 style={{ margin: '0.5rem 0' }}>
-          DUPR Match Generator
+          DUPR Match Generator V3
         </h1>
         <p>Works with any combination of # of players, # of courts, # of rounds.</p>
         <p style={{ fontSize: '0.9rem', opacity: 0.8, marginTop: '0.25rem', fontStyle: 'italic' }}>By PAD Pickleball</p>
@@ -842,8 +745,8 @@ function App() {
         setIsEndlessMode={setIsEndlessMode}
         targetRounds={targetRounds}
         setTargetRounds={setTargetRounds}
-        maxPartnerGap={maxPartnerGap}
-        setMaxPartnerGap={setMaxPartnerGap}
+        algorithmConfig={algorithmConfig}
+        setAlgorithmConfig={setAlgorithmConfig}
         onPurge={handleCloseSession}
         onSyncSettings={triggerCloudSync}
       />
@@ -872,24 +775,15 @@ function App() {
         hasPlayers={players.length > 0}
       />
       
-      {/* TV component handled via isTVWindow route */}
-
       <ResultsLog 
         results={results} 
         sessionTitle={activeSession?.name}
       />
 
       <MatchSummary 
-        results={results}
+        results={results} 
         sessionTitle={activeSession?.name}
       />
-
-      {/* Sync Status Indicator */}
-      <div className="sync-status">
-        <div className={`sync-dot ${syncStatus}`}></div>
-        <span>{syncStatus === 'online' ? 'Cloud Synced' : syncStatus === 'offline' ? 'Offline - Saving Locally' : 'Sync Error'}</span>
-        {syncStatus === 'online' && <RefreshCw size={12} className={authLoading ? 'animate-spin' : ''} />}
-      </div>
     </div>
   );
 }
