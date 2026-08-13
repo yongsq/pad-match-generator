@@ -29,7 +29,7 @@ export function Guide() {
           <BookOpen style={{ display: 'inline', transform: 'translateY(4px)', marginRight: '0.5rem' }} size={28} />
           User Guide
         </h1>
-        <p>Complete documentation for the DUPR Match Generator</p>
+        <p>Complete documentation for the DUPR Match Generator V3</p>
       </header>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.05s' }}>
@@ -59,42 +59,36 @@ export function Guide() {
       </div>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.2s', marginTop: '1rem' }}>
-        <h2 className="section-title"><Settings2 size={20} /> 2. Session Setup</h2>
+        <h2 className="section-title"><Settings2 size={20} /> 2. Session Setup & Match Formats</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <ol style={{ listStyleType: 'decimal', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <li><strong>Paste Participants:</strong> Copy your player list directly from the Reclub app. Paste it into the "Session Setup" box and click "Parse & Setup". The app will automatically read the names and neatly ignore headers, waitlists, and venue info.</li>
-            <li><strong>Set Courts & Gap Rule:</strong> Specify how many courts are available. You can also set a <strong>Max Partner DUPR Gap</strong> (e.g., 0.5) to ensure teammates are close in skill level. The engine will respect this gap unless a game blowout is otherwise unavoidable.</li>
-            <li><strong>Endless vs Pre-generate:</strong> 
-              <ul style={{ listStyleType: 'circle', paddingLeft: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <li><strong>Endless Mode (Default):</strong> Designed for dynamic play. You generate one round at a time. This seamlessly adapts if players show up late or leave early!</li>
-                <li><strong>Pre-generate Mode:</strong> Designed for structured events. Uncheck Endless Mode and enter a target (e.g. 5) to instantly schedule multiple rounds. </li>
-              </ul>
-            </li>
+            <li><strong>Paste Participants:</strong> Copy your player list directly from the Reclub app. Paste it into the "Session Setup" box and click "Parse & Setup". The app automatically extracts player names and gender tags like <code>(M)</code> or <code>(F)</code>.</li>
+            <li><strong>Doubles (2v2) vs Singles (1v1):</strong> Toggle between Doubles and Singles mode. Singles mode allocates 2 players per court per round.</li>
+            <li><strong>Fixed Partners Only vs Fixed:</strong> Check this option to strictly match fixed pairs against other fixed pairs. Leftover odd fixed pairs will sit out on a fair rotating basis without ever facing solo players.</li>
+            <li><strong>Advanced Algorithm Configuration:</strong> Expand the collapsible <em>"⚙️ Advanced Matching Algorithm Config"</em> box to customize penalty weights for Skill Balance, Repeat Partner, Repeat Opponent, Max Partner Gap, Fixed Partner Enforcement, Gender Balancing, and Court Randomization.</li>
           </ol>
         </div>
       </div>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.3s', marginTop: '1rem' }}>
-        <h2 className="section-title"><Users size={20} /> 3. Roster Management</h2>
+        <h2 className="section-title"><Users size={20} /> 3. Roster Management & Real-Time Autocomplete</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <li><strong>Adding DUPR:</strong> Add a player's exact DUPR rating in the text box next to their name. If left blank, they are treated as a beginner.</li>
-            <li><strong>Fixed Partners:</strong> Have a married couple or a dedicated pair playing? Simply select their partner's name from the "Fixed Partner" dropdown menu next to them in the roster. The system will permanently bind them together on the court while tracking their sit-out rotations perfectly in sync!</li>
-            <li><strong>Active vs Sit-Out:</strong> Need a player to leave early or rest a round? Uncheck the 'Active' box next to their name! They will be ignored entirely during the next generation. Check it again when they are ready to return.</li>
-            <li><strong>Late Joins:</strong> Someone showed up late? Just type their name and hit "Add". They will instantly be cycled into the next available round!</li>
+            <li><strong>Master Autocomplete:</strong> As you type into the "New Player Name" input, matching players from your master list appear automatically. Click a suggestion to auto-fill their DUPR, 6-character DUPR ID, and Gender instantly!</li>
+            <li><strong>Gender Column:</strong> Specify or edit a player's gender (<code>M</code> / <code>F</code>) directly in the roster table.</li>
+            <li><strong>Fixed Partners:</strong> Select a partner from the dropdown next to a player to permanently bind them together. The system syncs their court assignments and sit-out rotations.</li>
+            <li><strong>Active vs Sit-Out:</strong> Uncheck 'Active' to temporarily pause a player from match generation. Check it again when they return.</li>
           </ul>
         </div>
       </div>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.4s', marginTop: '1rem' }}>
-        <h2 className="section-title"><Play size={20} /> 4. Match-Making Logic</h2>
+        <h2 className="section-title"><Play size={20} /> 4. Match-Making & Gender Engine</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
-          <p style={{ marginBottom: '1rem' }}>Our <strong>Global Selection Optimizer</strong> guarantees the fairest possible pairings by scanning the entire roster simultaneously:</p>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <li><strong>Play Time Equity:</strong> The engine strictly calls players with the <em>lowest</em> game count to the court first, then those resting the longest.</li>
-            <li><strong>Penalty Matrix:</strong> The engine evaluates every possible matchup and applies penalties for repeat partners (Heavy penalty) and repeat opponents (Medium penalty).</li>
-            <li><strong>Balanced Matches:</strong> The optimizer prioritizes <strong>Competitive Fairness</strong>. If a matchup's total DUPR difference is too great, it will "pivot" to find a more balanced game, even if it means slightly bending the variety rules.</li>
-            <li><strong>Smart Randomization:</strong> When you click "Regenerate," the engine picks randomly from the <strong>Top 3</strong> mathematically best pairings so you get fresh results every time.</li>
+            <li><strong>Play Time Equity:</strong> Prioritizes active players with the fewest games played and longest sit-outs first.</li>
+            <li><strong>Mixed Doubles Logic:</strong> On 2M/2F courts, automatically enforces <code>M+F vs M+F</code> mixed doubles and penalizes <code>MM vs FF</code> configurations.</li>
+            <li><strong>Court Assignment Randomization:</strong> Shuffles court numbers each round to prevent higher DUPR tiers from systematically clustering on specific end courts.</li>
           </ul>
         </div>
       </div>
@@ -103,22 +97,19 @@ export function Guide() {
         <h2 className="section-title"><Save size={20} /> 5. Diagnostic Vetting & Cloud Sync</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <li><strong>Vetting Panels:</strong> Every match card has a diagnostic footer. It turns <strong>RED</strong> if there is a major skill blowout or repeat partner, and <strong>ORANGE</strong> if the skill gap is wider than your preferred setting.</li>
-            <li><strong>Match Reshuffle:</strong> Don't like a specific court's pairing? Click the <strong>Refresh icon</strong> in the match header to cycle through the 3 possible team combinations for those 4 players!</li>
-            <li><strong>Cloud Syncing:</strong> Match generation, roster management, and scoring are automatically synced to the Cloud in real-time. This allows Co-Organizers logged into the same account to simultaneously enter scores on their own phones!</li>
-            <li><strong>Save Result:</strong> Saving a result locks in the matrix penalties and logs the score permanently in the Results table at the bottom.</li>
-            <li><strong>Regenerate Rounds:</strong> Hitting <span style={{ background: 'var(--danger-color)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.8rem' }}>Regenerate Matches</span> will erase all <em>unsaved</em> rounds and re-calculate the session from that point forward.</li>
+            <li><strong>Vetting Panels:</strong> Every match card displays color-coded diagnostics for skill gaps and repeat pairings.</li>
+            <li><strong>Match Reshuffle:</strong> Click the refresh icon on any card to cycle through possible team combinations locally.</li>
+            <li><strong>Cloud Syncing:</strong> Real-time syncing to Supabase allows multiple co-organizers to score matches simultaneously.</li>
           </ul>
         </div>
       </div>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.55s', marginTop: '1rem' }}>
-        <h2 className="section-title"><Download size={20} /> 6. Exporting Results</h2>
+        <h2 className="section-title"><Download size={20} /> 6. Official DUPR CSV Export</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
-          <p>You can export all generated rounds (saved and unsaved) at any time:</p>
-          <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <li><strong>PNG Image:</strong> Perfect for sharing the upcoming schedule to WhatsApp or social groups.</li>
-            <li><strong>CSV File:</strong> Ideal for administrators who need a spreadsheet for DUPR reporting or long-term record keeping.</li>
+          <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <li><strong>DUPR CSV File:</strong> Export single-match CSVs matching official DUPR import standards. Customize the <strong>Location</strong> field (defaults to <code>PAD Pickleball Premiere Hotel</code>) in Export Settings.</li>
+            <li><strong>PNG Schedule Image:</strong> Export high-resolution PNG schedule graphics to share on WhatsApp or social media.</li>
           </ul>
         </div>
       </div>
@@ -126,14 +117,14 @@ export function Guide() {
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.6s', marginTop: '1rem' }}>
         <h2 className="section-title"><RefreshCw size={20} /> 7. Ending The Event</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
-          <p>The <strong>PURGE RECORDS</strong> button is the "factory reset" in the setup screen. Your phone saves your tournament data automatically. When the event is over, hit Purge Records to wipe all history and start fresh for the next session.</p>
+          <p>The <strong>PURGE RECORDS</strong> button resets all current session data when your tournament is complete, letting you start fresh for the next event.</p>
         </div>
       </div>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.65s', marginTop: '1rem' }}>
         <h2 className="section-title"><Play size={20} /> 8. TV Broadcast System</h2>
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
-          <p>Want to display live matches to the players on a TV? Just copy the browser URL and add <code>?tv=1</code> to the end of it (e.g., <code>https://pad.academy?tv=1</code>). This launches a dark-mode, minimalist TV graphic that automatically updates in real-time without ever needing to be refreshed!</p>
+          <p>Launch live court displays by appending <code>?tv=1</code> to the URL (or clicking the TV Display button). Live match updates mirror automatically in real-time!</p>
         </div>
       </div>
     </div>

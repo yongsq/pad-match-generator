@@ -1,4 +1,4 @@
-import { Home, History, Milestone, Cpu, Zap, Swords, Download, Layout, Target, RefreshCw, Link } from 'lucide-react';
+import { Home, History, Milestone, Cpu, Zap, Swords, Download, Layout, Target, RefreshCw, Link, Sliders, Users, Search, UserCheck } from 'lucide-react';
 
 export function VersionHistory() {
   return (
@@ -24,8 +24,83 @@ export function VersionHistory() {
       </header>
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.05s' }}>
+        
+        {/* Version 3.0 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
           <Milestone size={32} style={{ color: 'var(--accent-color)' }} />
+          <div>
+            <h2 style={{ margin: 0 }}>Version 3.0 (The Customization & Intelligence Engine)</h2>
+            <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Configurable Algorithm, Gender Logic, Singles, & Master Autocomplete</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
+          
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Sliders size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Collapsible Advanced Algorithm Config</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Organizers can now expand a dedicated configuration box in Session Setup to customize algorithm weights for Skill Balance, Repeat Partner, Repeat Opponents, Max Partner Gap, Fixed Partner Enforcement, Gender Balancing, and Court Randomization.
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Users size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Gender Tracking & Smart Mixed Doubles Engine</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Added player gender support (<code>M</code> / <code>F</code>) with automated Reclub paste parsing (e.g. <code>John (M)</code>). On courts with 2 Males and 2 Females, the algorithm automatically enforces <strong>Mixed Doubles (M+F vs M+F)</strong> and penalizes <code>MM vs FF</code> match-ups.
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Search size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Real-Time Master Roster Autocomplete & Recall</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Typing into the New Player Name input instantly queries your Supabase master roster starting from the first character. Selecting a suggested player auto-fills their DUPR Rating, 6-character DUPR ID, and Gender automatically.
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <UserCheck size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Singles (1v1) & Doubles (2v2) Modes</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Organizers can now toggle between Doubles (2v2) and Singles (1v1) match formats in Session Setup. Singles mode automatically allocates 2 players per court and formats 1v1 match cards.
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Link size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Strict Fixed Partners Only Pool Mode</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Added a checkbox: <em>"Fixed partners only play against fixed partners"</em>. Fixed teams only match against other fixed teams. When an odd number of fixed teams exists, leftover fixed teams sit out on a fair rotating basis without ever facing solo players.
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Download size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Official DUPR CSV Export & Location Field</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Updated CSV exports to match official DUPR single-match import templates, including a customizable <strong>Location</strong> text field (pre-filled with <code>PAD Pickleball Premiere Hotel</code>) and automatic DUPR ID healing.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Version 1.2 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+          <Milestone size={32} style={{ color: 'var(--accent-color)', opacity: 0.5 }} />
           <div>
             <h2 style={{ margin: 0 }}>Version 1.2 (The Cloud Sync Update)</h2>
             <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Real-time Co-op & Broadcast TV</p>
@@ -54,6 +129,7 @@ export function VersionHistory() {
           </div>
         </div>
 
+        {/* Version 1.1 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
           <Milestone size={32} style={{ color: 'var(--accent-color)', opacity: 0.5 }} />
           <div>
@@ -84,6 +160,7 @@ export function VersionHistory() {
           </div>
         </div>
 
+        {/* Version 1.0 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
           <Milestone size={32} style={{ color: 'var(--accent-color)', opacity: 0.5 }} />
           <div>
