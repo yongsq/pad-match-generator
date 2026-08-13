@@ -14,23 +14,26 @@ export async function syncToMasterRoster(player: Player) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  const payload: any = {
+  const basePayload: any = {
     name: player.name,
     dupr_id: player.duprId || null,
     last_known_dupr: typeof player.dupr === 'number' ? player.dupr : null,
     user_id: user.id
   };
-  if (player.gender) {
-    payload.gender = player.gender;
-  }
 
+  const fullPayload = player.gender ? { ...basePayload, gender: player.gender } : basePayload;
   const { error } = await supabase
     .from('master_roster')
-    .upsert(payload, {
-      onConflict: 'name,user_id'
-    });
+    .upsert(fullPayload, { onConflict: 'name,user_id' });
 
-  if (error) console.error('Error syncing to master roster:', error.message);
+  if (error && player.gender) {
+    const { error: fallbackErr } = await supabase
+      .from('master_roster')
+      .upsert(basePayload, { onConflict: 'name,user_id' });
+    if (fallbackErr) console.error('Error syncing to master roster:', fallbackErr.message);
+  } else if (error) {
+    console.error('Error syncing to master roster:', error.message);
+  }
 }
 
 // 2. Fetch master roster for a list of names (Smart Match)
@@ -41,8 +44,11 @@ export async function lookupMasterPlayers(names: string[]): Promise<MasterPlayer
     .in('name', names);
 
   if (error) {
-    console.error('Error looking up master players:', error.message);
-    return [];
+    const { data: fallbackData } = await supabase
+      .from('master_roster')
+      .select('id, name, dupr_id, last_known_dupr')
+      .in('name', names);
+    return (fallbackData || []) as MasterPlayer[];
   }
 
   return data as MasterPlayer[];
@@ -51,13 +57,28 @@ export async function lookupMasterPlayers(names: string[]): Promise<MasterPlayer
 // 3. Search Master Roster (for real-time autocomplete)
 export async function searchMasterRoster(query: string): Promise<MasterPlayer[]> {
   if (!query || query.trim().length === 0) return [];
+  
   const { data, error } = await supabase
     .from('master_roster')
     .select('id, name, dupr_id, last_known_dupr, gender')
     .ilike('name', `%${query.trim()}%`)
     .limit(5);
 
-  if (error) return [];
+  if (error) {
+    console.warn('Error querying master_roster with gender, trying fallback query:', error.message);
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('master_roster')
+      .select('id, name, dupr_id, last_known_dupr')
+      .ilike('name', `%${query.trim()}%`)
+      .limit(5);
+
+    if (fallbackError) {
+      console.error('Error searching master roster fallback:', fallbackError.message);
+      return [];
+    }
+    return fallbackData as MasterPlayer[];
+  }
+
   return data as MasterPlayer[];
 }
 
@@ -123,7 +144,6 @@ export async function saveMatch(tournamentId: string, match: any, retryCount = 0
     return false;
   }
 
-  // Manual UPSERT: Delete existing record first to bypass missing unique constraint
   await supabase
     .from('match_history')
     .delete()
@@ -132,7 +152,6 @@ export async function saveMatch(tournamentId: string, match: any, retryCount = 0
     .eq('court', match.court)
     .eq('user_id', user.id);
 
-  // Then insert the fresh record
   const { error } = await supabase
     .from('match_history')
     .insert({

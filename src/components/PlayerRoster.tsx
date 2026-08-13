@@ -33,8 +33,9 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
 
   const handleNameChange = async (val: string) => {
     setNewName(val);
-    if (val.trim().length >= 2) {
-      const results = await searchMasterRoster(val);
+    const query = val.trim();
+    if (query.length >= 1) {
+      const results = await searchMasterRoster(query);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
     } else {
@@ -94,7 +95,7 @@ export function PlayerRoster({ players, updatePlayer, addPlayer, removePlayer, o
             placeholder="New Player Name" 
             value={newName} 
             onChange={e => handleNameChange(e.target.value)} 
-            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+            onFocus={e => handleNameChange(e.target.value)}
             style={{ width: '100%' }}
           />
 
