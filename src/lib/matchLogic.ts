@@ -534,6 +534,15 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
     }
   }
 
+  // 5b. Fixed Partners Only Vs Fixed Partners Enforcement
+  if (config.matchType === 'doubles' && config.fixedPartnersOnlyVsFixed) {
+    const isPairA = isFixedPair(teamA[0], teamA[1]);
+    const isPairB = isFixedPair(teamB[0], teamB[1]);
+    if (isPairA !== isPairB) {
+      penalty += config.fixedPartnerWeight;
+    }
+  }
+
   // 6. Gender Balancing Logic
   if (config.enableGenderBalance) {
     const matchPlayers = [...teamA, ...teamB];
