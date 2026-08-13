@@ -162,6 +162,8 @@ export function generateMatches(
   const selected: Player[] = [];
   const selectedIds = new Set<string>();
 
+  const fixedPairExcludedIds = new Set<string>();
+
   // If "Fixed partners only play against fixed partners" is enabled in Doubles
   if (config.matchType === 'doubles' && config.fixedPartnersOnlyVsFixed) {
     // Collect valid active fixed pairs
@@ -181,19 +183,26 @@ export function generateMatches(
       }
     }
 
-    // Try to pair Fixed Pairs together on courts first (needs 2 fixed pairs = 4 players)
+    // Pair Fixed Pairs together on courts first (needs 2 fixed pairs = 4 players)
     while (fixedPairList.length >= 2 && selected.length + 4 <= slots) {
       const pairA = fixedPairList.shift()!;
       const pairB = fixedPairList.shift()!;
       selected.push(pairA[0], pairA[1], pairB[0], pairB[1]);
       selectedIds.add(pairA[0].id).add(pairA[1].id).add(pairB[0].id).add(pairB[1].id);
     }
+
+    // Any leftover fixed pair that couldn't be matched against another fixed pair must sit out this round!
+    for (const leftoverPair of fixedPairList) {
+      fixedPairExcludedIds.add(leftoverPair[0].id.trim().toLowerCase());
+      fixedPairExcludedIds.add(leftoverPair[1].id.trim().toLowerCase());
+    }
   }
 
-  // Fill remaining slots with remaining active players
+  // Fill remaining slots with remaining active players (excluding leftover fixed pairs if fixedPartnersOnlyVsFixed is true)
   for (let i = 0; i < activePlayers.length && selected.length < slots; i++) {
     const p = activePlayers[i];
     if (selectedIds.has(p.id)) continue;
+    if (config.fixedPartnersOnlyVsFixed && fixedPairExcludedIds.has(p.id.trim().toLowerCase())) continue;
 
     if (config.matchType === 'doubles' && p.fixedPartnerId) {
       const targetId = p.fixedPartnerId.trim().toLowerCase();
