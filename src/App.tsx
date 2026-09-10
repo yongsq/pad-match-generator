@@ -310,11 +310,11 @@ function App() {
   };
 
   const handleResetGeneratedRounds = () => {
-    if (currentRoundResults.length > 0) {
-      if (!confirm("This will erase all un-saved generated matches. Proceed?")) return;
+    const unsavedMatches = currentRoundResults.filter(m => !m.isSaved);
+    if (unsavedMatches.length > 0) {
+      if (!confirm("This will replace un-saved matches with fresh generated matches. Proceed?")) return;
     }
     
-    const unsavedMatches = currentRoundResults.filter(m => !m.isSaved);
     const savedMatches = currentRoundResults.filter(m => m.isSaved);
 
     const gamesToSubtract: Record<string, number> = {};
@@ -331,13 +331,24 @@ function App() {
     }));
 
     const maxSavedRound = [...results, ...savedMatches].reduce((max, r) => Math.max(max, r.round), 0);
-    setRoundNumber(maxSavedRound + 1);
-
-    setPlayers(restoredPlayers);
-    setCurrentRoundResults(savedMatches);
+    const nextRoundNum = maxSavedRound + 1;
 
     if (activeSession) {
       deleteUnsavedMatches(activeSession.id).catch(console.error);
+    }
+
+    // Immediately generate fresh matches for the round
+    const numCourts = courts === '' ? 1 : courts;
+    const { upcomingMatches, updatedPlayers } = generateMatches(restoredPlayers, numCourts, matrix, nextRoundNum, algorithmConfig);
+
+    setPlayers(updatedPlayers);
+    setCurrentRoundResults([...savedMatches, ...upcomingMatches]);
+    setRoundNumber(nextRoundNum + (upcomingMatches.length > 0 ? 1 : 0));
+
+    if (activeSession) {
+      upcomingMatches.forEach(m => {
+        saveMatch(activeSession.id, m).catch(console.error);
+      });
     }
   };
 

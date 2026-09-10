@@ -269,6 +269,14 @@ export function CurrentRound({
     );
   };
 
+  const handleGenerateClick = () => {
+    if (isEndlessMode && !allMatchesSaved && matches.length > 0) {
+      onResetRounds();
+    } else {
+      onGenerateNextRound();
+    }
+  };
+
   return (
     <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.1s' }}>
       {activeSwap && (
@@ -319,7 +327,7 @@ export function CurrentRound({
             <button
               className="btn btn-secondary"
               onClick={onResetRounds}
-              title="Delete unsaved matches and recalculate stats"
+              title="Replace unsaved matches with fresh matches"
               style={{ padding: '0.5rem 1rem', background: 'var(--danger-color)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
               <RotateCcw size={16} />
@@ -328,8 +336,7 @@ export function CurrentRound({
           )}
           <button 
             className="btn btn-primary" 
-            onClick={onGenerateNextRound} 
-            disabled={isEndlessMode && !allMatchesSaved && matches.length > 0}
+            onClick={handleGenerateClick} 
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {matches.length === 0 
@@ -461,8 +468,7 @@ export function CurrentRound({
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
             <button 
               className="btn btn-primary" 
-              onClick={onGenerateNextRound} 
-              disabled={isEndlessMode && !allMatchesSaved && matches.length > 0}
+              onClick={handleGenerateClick} 
               style={{ width: '100%', maxWidth: '400px', padding: '1rem', fontSize: '1.1rem' }}
             >
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
