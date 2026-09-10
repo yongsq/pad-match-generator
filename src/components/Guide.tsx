@@ -87,6 +87,8 @@ export function Guide() {
         <div style={{ padding: '0.5rem 0 1rem 1rem', lineHeight: '1.6' }}>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <li><strong>Play Time Equity:</strong> Prioritizes active players with the fewest games played and longest sit-outs first.</li>
+            <li><strong>Beginner Protection Guardrail (DUPR ≤ 2.0):</strong> Automatically tightens skill gap limits on courts with beginner players (max teammate gap 0.3, max opponent gap 0.4) to protect new players from skill disparity while bypassing gender restrictions on beginner courts.</li>
+            <li><strong>Equal Priority Tie-Breaker:</strong> Equal-priority players with identical games and sit-outs are randomly shuffled during player selection, guaranteeing fair court rotation for all players.</li>
             <li><strong>Mixed Doubles Logic:</strong> On 2M/2F courts, automatically enforces <code>M+F vs M+F</code> mixed doubles and penalizes <code>MM vs FF</code> configurations.</li>
             <li><strong>Court Assignment Randomization:</strong> Shuffles court numbers each round to prevent higher DUPR tiers from systematically clustering on specific end courts.</li>
           </ul>

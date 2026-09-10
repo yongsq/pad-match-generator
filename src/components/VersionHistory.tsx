@@ -25,6 +25,49 @@ export function VersionHistory() {
 
       <div className="glass-panel animate-fade-in" style={{ animationDelay: '0.05s' }}>
         
+        {/* Version 3.1 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+          <Milestone size={32} style={{ color: 'var(--accent-color)' }} />
+          <div>
+            <h2 style={{ margin: 0 }}>Version 3.1 (Beginner Protection & Fair Pool Engine)</h2>
+            <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>September 10, 2026 • Beginner Skill Guardrail (DUPR ≤ 2.0) & Fair Rotation</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Target size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Beginner Protection Guardrail (DUPR ≤ 2.0)</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Protects beginner players (DUPR ≤ 2.0) from being targeted or paired with high skill gaps:
+                <br />• <strong>Teammate Gap Limit</strong>: Default 0.3 max (e.g. 2.0 player only pairs with 2.0–2.3).
+                <br />• <strong>Opponent Gap Limit</strong>: Default 0.4 max (e.g. 2.0 player only faces opponents ≤ 2.4).
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <RefreshCw size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Randomized Tie-Breaker Rotation</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Replaced sequential roster array reading with a randomized tie-breaker for equal-priority players (same games played & sit-outs). Ensures all players (like Lina Koh) rotate fairly onto courts.
+              </p>
+            </div>
+          </div>
+
+          <div className="feature-item" style={{ display: 'flex', gap: '1rem' }}>
+            <Sliders size={24} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Gender Protocol Bypass on Beginner Courts</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
+                Automatically bypasses the Mixed Doubles (MFMF) requirement on beginner courts to maximize pool availability and pairing options while strictly maintaining skill protection limits.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Version 3.0 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
           <Milestone size={32} style={{ color: 'var(--accent-color)' }} />
