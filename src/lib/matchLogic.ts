@@ -95,6 +95,12 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
   beginnerPenaltyWeight: 100000
 };
 
+export function getDuprVal(p: Player | undefined | null): number | null {
+  if (!p || p.dupr === '' || p.dupr === undefined || p.dupr === null) return null;
+  const n = Number(p.dupr);
+  return isNaN(n) ? null : n;
+}
+
 /**
  * Paste & Parse Reclub participant list paste
  * Extracts names and optional gender tags like (M), (F), [M], [F]
@@ -207,13 +213,6 @@ export function generateMatches(
       fixedPairExcludedIds.add(leftoverPair[1].id.trim().toLowerCase());
     }
   }
-
-  // Helper to parse numeric DUPR safely
-  const getDuprVal = (p: Player): number | null => {
-    if (p.dupr === '' || p.dupr === undefined || p.dupr === null) return null;
-    const n = Number(p.dupr);
-    return isNaN(n) ? null : n;
-  };
 
   const isBeginnerPlayer = (p: Player) => {
     if (!config.enableBeginnerGuardrail) return false;
@@ -644,13 +643,6 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
       }
     }
   }
-
-  // Helper to parse numeric DUPR safely (handles numbers and strings)
-  const getDuprVal = (p: Player): number | null => {
-    if (p.dupr === '' || p.dupr === undefined || p.dupr === null) return null;
-    const n = Number(p.dupr);
-    return isNaN(n) ? null : n;
-  };
 
   // 7. Beginner Protection Guardrail (DUPR <= Threshold)
   if (config.enableBeginnerGuardrail) {
