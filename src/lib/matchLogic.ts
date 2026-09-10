@@ -309,7 +309,20 @@ export function generateMatches(
 
   while (remainingPlayers.length >= slotsPerCourt && courtNum <= courts) {
     const bestMatch = findBestMatch(remainingPlayers, matrix, config);
-    if (!bestMatch) break;
+    if (!bestMatch) {
+      // Remove beginner or incompatible player from court pool so compatible players can fill the court
+      const beginnerInRemaining = remainingPlayers.find(p => {
+        const v = getDuprVal(p);
+        return v !== null && v <= (config.beginnerDuprThreshold ?? 2.0);
+      });
+
+      if (beginnerInRemaining) {
+        remainingPlayers = remainingPlayers.filter(p => p.id !== beginnerInRemaining.id);
+      } else {
+        remainingPlayers.pop();
+      }
+      continue;
+    }
 
     upcomingMatches.push({
       round: roundNumber,
@@ -452,14 +465,15 @@ function findBestMatch(players: Player[], matrix: Matrix, config: AlgorithmConfi
 
   candidates.sort((a, b) => a.penalty - b.penalty);
 
-  // Pick from Top-K valid candidates
+  // Pick ONLY from valid candidates (< 1,000,000 penalty)
   const validCandidates = candidates.filter(c => c.penalty < 1000000);
-  const poolToPickFrom = validCandidates.length > 0 ? validCandidates : candidates;
+  if (validCandidates.length === 0) {
+    return null; // Refuse to generate matches that violate hard guardrails
+  }
 
-  const k = Math.min(3, poolToPickFrom.length);
+  const k = Math.min(3, validCandidates.length);
   const randomIndex = Math.floor(Math.random() * k);
-
-  return poolToPickFrom[randomIndex];
+  return validCandidates[randomIndex];
 }
 
 export function getMatchConfigurations(players: Player[], matrix: Matrix, config: AlgorithmConfig = DEFAULT_ALGORITHM_CONFIG): MatchCandidate[] {
