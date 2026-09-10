@@ -165,12 +165,15 @@ export function generateMatches(
   // Filter roster for active players
   const activePlayers = currentPlayers.filter(p => p.isActive);
 
-  // Sort primarily by low gamesPlayed, secondarily by high consecutiveSitOuts
+  // Sort primarily by low gamesPlayed, secondarily by high consecutiveSitOuts, tertiarily by random shuffle
   activePlayers.sort((a, b) => {
     if (a.gamesPlayed !== b.gamesPlayed) {
       return a.gamesPlayed - b.gamesPlayed; // ASC
     }
-    return b.consecutiveSitOuts - a.consecutiveSitOuts; // DESC
+    if (a.consecutiveSitOuts !== b.consecutiveSitOuts) {
+      return b.consecutiveSitOuts - a.consecutiveSitOuts; // DESC
+    }
+    return Math.random() - 0.5; // Equal priority tie-breaker
   });
 
   const slotsPerCourt = config.matchType === 'singles' ? 2 : 4;
@@ -246,6 +249,12 @@ export function generateMatches(
       }
 
       if (selected.length + 4 <= slots) {
+        compatibleList.sort((a, b) => {
+          if (a.gamesPlayed !== b.gamesPlayed) return a.gamesPlayed - b.gamesPlayed;
+          if (a.consecutiveSitOuts !== b.consecutiveSitOuts) return b.consecutiveSitOuts - a.consecutiveSitOuts;
+          return Math.random() - 0.5;
+        });
+
         const top4 = compatibleList.slice(0, 4);
         top4.forEach(compPlayer => {
           selected.push(compPlayer);
