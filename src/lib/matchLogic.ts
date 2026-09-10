@@ -227,11 +227,12 @@ export function generateMatches(
     if (config.fixedPartnersOnlyVsFixed && fixedPairExcludedIds.has(p.id.trim().toLowerCase())) continue;
 
     // Beginner Guardrail Compatibility Check:
-    // If p is a beginner, we MUST select 4 compatible players (dupr <= threshold + maxOpponentGap) TOGETHER for this court!
+    // If p is a beginner, we MUST select 4 compatible players (dupr <= threshold + min(maxPartnerGap, maxOpponentGap)) TOGETHER for this court!
     if (config.enableBeginnerGuardrail && isBeginnerPlayer(p)) {
       const threshold = config.beginnerDuprThreshold ?? 2.0;
+      const maxPartnerGap = config.beginnerMaxPartnerGap ?? 0.3;
       const maxOppGap = config.beginnerMaxOpponentGap ?? 0.4;
-      const maxLimit = threshold + maxOppGap;
+      const maxLimit = threshold + Math.min(maxPartnerGap, maxOppGap); // 2.0 + 0.3 = 2.3 max!
 
       const compatibleList = activePlayers.filter(ap => {
         if (selectedIds.has(ap.id)) return false;
@@ -241,7 +242,7 @@ export function generateMatches(
       });
 
       if (compatibleList.length < 4) {
-        continue; // Sit out beginner until 4 compatible players are available for a full court
+        continue; // Sit out beginner until 4 compatible players (<= 2.3) are available for a full court
       }
 
       if (selected.length + 4 <= slots) {
