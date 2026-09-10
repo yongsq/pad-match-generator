@@ -277,6 +277,18 @@ export function generateMatches(
     }
   }
 
+  // Fallback Guarantee: If no court could be filled (selected.length < slotsPerCourt) but activePlayers >= slotsPerCourt,
+  // fill at least one court with top active players so match generation never stalls or returns 0 matches!
+  if (selected.length < slotsPerCourt && activePlayers.length >= slotsPerCourt) {
+    for (let i = 0; i < activePlayers.length && selected.length < slotsPerCourt; i++) {
+      const p = activePlayers[i];
+      if (!selectedIds.has(p.id)) {
+        selected.push(p);
+        selectedIds.add(p.id);
+      }
+    }
+  }
+
   const selectedSet = selectedIds;
 
   // Update Games / SitOuts
