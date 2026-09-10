@@ -208,11 +208,43 @@ export function generateMatches(
     }
   }
 
+  // Helper to parse numeric DUPR safely
+  const getDuprVal = (p: Player): number | null => {
+    if (p.dupr === '' || p.dupr === undefined || p.dupr === null) return null;
+    const n = Number(p.dupr);
+    return isNaN(n) ? null : n;
+  };
+
+  const isBeginnerPlayer = (p: Player) => {
+    if (!config.enableBeginnerGuardrail) return false;
+    const v = getDuprVal(p);
+    return v !== null && v <= (config.beginnerDuprThreshold ?? 2.0);
+  };
+
   // Fill remaining slots with remaining active players (excluding leftover fixed pairs if fixedPartnersOnlyVsFixed is true)
   for (let i = 0; i < activePlayers.length && selected.length < slots; i++) {
     const p = activePlayers[i];
     if (selectedIds.has(p.id)) continue;
     if (config.fixedPartnersOnlyVsFixed && fixedPairExcludedIds.has(p.id.trim().toLowerCase())) continue;
+
+    // Beginner Guardrail Compatibility Check:
+    // If p is a beginner, ensure there are at least 4 compatible players (dupr <= threshold + maxOpponentGap) available
+    if (config.enableBeginnerGuardrail && isBeginnerPlayer(p)) {
+      const threshold = config.beginnerDuprThreshold ?? 2.0;
+      const maxOppGap = config.beginnerMaxOpponentGap ?? 0.4;
+      const maxLimit = threshold + maxOppGap;
+
+      const compatibleCount = activePlayers.filter(ap => {
+        if (selectedIds.has(ap.id)) return false;
+        if (config.fixedPartnersOnlyVsFixed && fixedPairExcludedIds.has(ap.id.trim().toLowerCase())) return false;
+        const v = getDuprVal(ap);
+        return v !== null && v <= maxLimit;
+      }).length;
+
+      if (compatibleCount < 4) {
+        continue; // Sit out beginner until 4 compatible players are available for a full court
+      }
+    }
 
     if (config.matchType === 'doubles' && p.fixedPartnerId) {
       const targetId = p.fixedPartnerId.trim().toLowerCase();
