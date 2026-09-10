@@ -582,58 +582,78 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
     }
   }
 
+  // Helper to parse numeric DUPR safely (handles numbers and strings)
+  const getDuprVal = (p: Player): number | null => {
+    if (p.dupr === '' || p.dupr === undefined || p.dupr === null) return null;
+    const n = Number(p.dupr);
+    return isNaN(n) ? null : n;
+  };
+
   // 7. Beginner Protection Guardrail (DUPR <= Threshold)
   if (config.enableBeginnerGuardrail) {
     const threshold = config.beginnerDuprThreshold ?? 2.0;
     const maxPartnerGap = config.beginnerMaxPartnerGap ?? 0.3;
     const maxOpponentGap = config.beginnerMaxOpponentGap ?? 0.4;
-    const penaltyWeight = config.beginnerPenaltyWeight ?? 100000;
+    const penaltyWeight = config.beginnerPenaltyWeight ?? 1000000;
 
     const allPlayers = [...teamA, ...teamB];
-    const hasBeginner = allPlayers.some(p => typeof p.dupr === 'number' && p.dupr <= threshold);
+    const hasBeginner = allPlayers.some(p => {
+      const v = getDuprVal(p);
+      return v !== null && v <= threshold;
+    });
 
     if (hasBeginner) {
       // 1. Teammate Gap Evaluation
       if (teamA.length >= 2) {
-        const isBeginnerA = (typeof teamA[0].dupr === 'number' && teamA[0].dupr <= threshold) ||
-                            (typeof teamA[1].dupr === 'number' && teamA[1].dupr <= threshold);
+        const v0 = getDuprVal(teamA[0]);
+        const v1 = getDuprVal(teamA[1]);
+        const isBeginnerA = (v0 !== null && v0 <= threshold) || (v1 !== null && v1 <= threshold);
         if (isBeginnerA) {
-          const gapA = Math.abs(Number(teamA[0].dupr || 2.0) - Number(teamA[1].dupr || 2.0));
+          const dupr0 = v0 ?? 2.0;
+          const dupr1 = v1 ?? 2.0;
+          const gapA = Math.abs(dupr0 - dupr1);
           if (gapA > maxPartnerGap) {
-            penalty += (gapA - maxPartnerGap) * penaltyWeight;
+            penalty += 1000000 + (gapA - maxPartnerGap) * penaltyWeight;
           }
         }
       }
 
       if (teamB.length >= 2) {
-        const isBeginnerB = (typeof teamB[0].dupr === 'number' && teamB[0].dupr <= threshold) ||
-                            (typeof teamB[1].dupr === 'number' && teamB[1].dupr <= threshold);
+        const v0 = getDuprVal(teamB[0]);
+        const v1 = getDuprVal(teamB[1]);
+        const isBeginnerB = (v0 !== null && v0 <= threshold) || (v1 !== null && v1 <= threshold);
         if (isBeginnerB) {
-          const gapB = Math.abs(Number(teamB[0].dupr || 2.0) - Number(teamB[1].dupr || 2.0));
+          const dupr0 = v0 ?? 2.0;
+          const dupr1 = v1 ?? 2.0;
+          const gapB = Math.abs(dupr0 - dupr1);
           if (gapB > maxPartnerGap) {
-            penalty += (gapB - maxPartnerGap) * penaltyWeight;
+            penalty += 1000000 + (gapB - maxPartnerGap) * penaltyWeight;
           }
         }
       }
 
       // 2. Opponent Gap Evaluation
       for (const pA of teamA) {
-        if (typeof pA.dupr === 'number' && pA.dupr <= threshold) {
+        const vA = getDuprVal(pA);
+        if (vA !== null && vA <= threshold) {
           for (const pB of teamB) {
-            const oppGap = Math.abs(pA.dupr - Number(pB.dupr || 3.0));
+            const vB = getDuprVal(pB) ?? 3.0;
+            const oppGap = Math.abs(vA - vB);
             if (oppGap > maxOpponentGap) {
-              penalty += (oppGap - maxOpponentGap) * penaltyWeight;
+              penalty += 1000000 + (oppGap - maxOpponentGap) * penaltyWeight;
             }
           }
         }
       }
 
       for (const pB of teamB) {
-        if (typeof pB.dupr === 'number' && pB.dupr <= threshold) {
+        const vB = getDuprVal(pB);
+        if (vB !== null && vB <= threshold) {
           for (const pA of teamA) {
-            const oppGap = Math.abs(pB.dupr - Number(pA.dupr || 3.0));
+            const vA = getDuprVal(pA) ?? 3.0;
+            const oppGap = Math.abs(vB - vA);
             if (oppGap > maxOpponentGap) {
-              penalty += (oppGap - maxOpponentGap) * penaltyWeight;
+              penalty += 1000000 + (oppGap - maxOpponentGap) * penaltyWeight;
             }
           }
         }
