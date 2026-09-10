@@ -63,6 +63,11 @@ export interface AlgorithmConfig {
   disallowMMvsFF: boolean;
   genderPenaltyWeight: number;
   randomizeCourts: boolean;
+  enableBeginnerGuardrail: boolean;
+  beginnerDuprThreshold: number;
+  beginnerMaxPartnerGap: number;
+  beginnerMaxOpponentGap: number;
+  beginnerPenaltyWeight: number;
 }
 
 export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
@@ -82,7 +87,12 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
   enableGenderBalance: true,
   disallowMMvsFF: true,
   genderPenaltyWeight: 100000,
-  randomizeCourts: true
+  randomizeCourts: true,
+  enableBeginnerGuardrail: true,
+  beginnerDuprThreshold: 2.0,
+  beginnerMaxPartnerGap: 0.3,
+  beginnerMaxOpponentGap: 0.4,
+  beginnerPenaltyWeight: 100000
 };
 
 /**
@@ -567,6 +577,65 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
       if (teamAMales === 2 || teamBMales === 2) {
         if (config.disallowMMvsFF) {
           penalty += config.genderPenaltyWeight;
+        }
+      }
+    }
+  }
+
+  // 7. Beginner Protection Guardrail (DUPR <= Threshold)
+  if (config.enableBeginnerGuardrail) {
+    const threshold = config.beginnerDuprThreshold ?? 2.0;
+    const maxPartnerGap = config.beginnerMaxPartnerGap ?? 0.3;
+    const maxOpponentGap = config.beginnerMaxOpponentGap ?? 0.4;
+    const penaltyWeight = config.beginnerPenaltyWeight ?? 100000;
+
+    const allPlayers = [...teamA, ...teamB];
+    const hasBeginner = allPlayers.some(p => typeof p.dupr === 'number' && p.dupr <= threshold);
+
+    if (hasBeginner) {
+      // 1. Teammate Gap Evaluation
+      if (teamA.length >= 2) {
+        const isBeginnerA = (typeof teamA[0].dupr === 'number' && teamA[0].dupr <= threshold) ||
+                            (typeof teamA[1].dupr === 'number' && teamA[1].dupr <= threshold);
+        if (isBeginnerA) {
+          const gapA = Math.abs(Number(teamA[0].dupr || 2.0) - Number(teamA[1].dupr || 2.0));
+          if (gapA > maxPartnerGap) {
+            penalty += (gapA - maxPartnerGap) * penaltyWeight;
+          }
+        }
+      }
+
+      if (teamB.length >= 2) {
+        const isBeginnerB = (typeof teamB[0].dupr === 'number' && teamB[0].dupr <= threshold) ||
+                            (typeof teamB[1].dupr === 'number' && teamB[1].dupr <= threshold);
+        if (isBeginnerB) {
+          const gapB = Math.abs(Number(teamB[0].dupr || 2.0) - Number(teamB[1].dupr || 2.0));
+          if (gapB > maxPartnerGap) {
+            penalty += (gapB - maxPartnerGap) * penaltyWeight;
+          }
+        }
+      }
+
+      // 2. Opponent Gap Evaluation
+      for (const pA of teamA) {
+        if (typeof pA.dupr === 'number' && pA.dupr <= threshold) {
+          for (const pB of teamB) {
+            const oppGap = Math.abs(pA.dupr - Number(pB.dupr || 3.0));
+            if (oppGap > maxOpponentGap) {
+              penalty += (oppGap - maxOpponentGap) * penaltyWeight;
+            }
+          }
+        }
+      }
+
+      for (const pB of teamB) {
+        if (typeof pB.dupr === 'number' && pB.dupr <= threshold) {
+          for (const pA of teamA) {
+            const oppGap = Math.abs(pB.dupr - Number(pA.dupr || 3.0));
+            if (oppGap > maxOpponentGap) {
+              penalty += (oppGap - maxOpponentGap) * penaltyWeight;
+            }
+          }
         }
       }
     }

@@ -365,6 +365,63 @@ export function Controls({
               </div>
             </div>
 
+            {/* Beginner Protection Guardrail (DUPR <= 2.0) */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={algorithmConfig.enableBeginnerGuardrail ?? true} 
+                      onChange={e => updateConfig({ enableBeginnerGuardrail: e.target.checked })} 
+                    />
+                    Beginner Protection Guardrail (DUPR ≤ {algorithmConfig.beginnerDuprThreshold ?? 2.0})
+                  </label>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.6, marginLeft: '1.5rem', marginTop: '0.2rem' }}>
+                    Strictly limits teammate & opponent skill gaps whenever a beginner is on court.
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', opacity: algorithmConfig.enableBeginnerGuardrail ? 1 : 0.5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Threshold:</span>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      className="input" 
+                      disabled={!algorithmConfig.enableBeginnerGuardrail}
+                      value={algorithmConfig.beginnerDuprThreshold ?? 2.0} 
+                      onChange={e => updateConfig({ beginnerDuprThreshold: parseFloat(e.target.value) || 2.0 })} 
+                      style={{ width: '55px', padding: '0.2rem', fontSize: '0.8rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Max Team Gap:</span>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      className="input" 
+                      disabled={!algorithmConfig.enableBeginnerGuardrail}
+                      value={algorithmConfig.beginnerMaxPartnerGap ?? 0.3} 
+                      onChange={e => updateConfig({ beginnerMaxPartnerGap: parseFloat(e.target.value) || 0.3 })} 
+                      style={{ width: '55px', padding: '0.2rem', fontSize: '0.8rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Max Opp Gap:</span>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      className="input" 
+                      disabled={!algorithmConfig.enableBeginnerGuardrail}
+                      value={algorithmConfig.beginnerMaxOpponentGap ?? 0.4} 
+                      onChange={e => updateConfig({ beginnerMaxOpponentGap: parseFloat(e.target.value) || 0.4 })} 
+                      style={{ width: '55px', padding: '0.2rem', fontSize: '0.8rem' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
       </div>
