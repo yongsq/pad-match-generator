@@ -605,21 +605,29 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
     }
   }
 
-  // 6. Gender Balancing Logic
+  // 6. Gender Balancing Logic (Bypassed on Beginner Courts to maximize pool availability)
   if (config.enableGenderBalance) {
-    const matchPlayers = [...teamA, ...teamB];
-    const males = matchPlayers.filter(p => p.gender === 'M').length;
-    const females = matchPlayers.filter(p => p.gender === 'F').length;
+    const threshold = config.beginnerDuprThreshold ?? 2.0;
+    const hasBeginnerOnCourt = config.enableBeginnerGuardrail && [...teamA, ...teamB].some(p => {
+      const v = getDuprVal(p);
+      return v !== null && v <= threshold;
+    });
 
-    // If 2 Males and 2 Females (2M / 2F)
-    if (males === 2 && females === 2) {
-      const teamAMales = teamA.filter(p => p.gender === 'M').length;
-      const teamBMales = teamB.filter(p => p.gender === 'M').length;
+    if (!hasBeginnerOnCourt) {
+      const matchPlayers = [...teamA, ...teamB];
+      const males = matchPlayers.filter(p => p.gender === 'M').length;
+      const females = matchPlayers.filter(p => p.gender === 'F').length;
 
-      // If configuration is MM vs FF (teamAMales is 2 or 0)
-      if (teamAMales === 2 || teamBMales === 2) {
-        if (config.disallowMMvsFF) {
-          penalty += config.genderPenaltyWeight;
+      // If 2 Males and 2 Females (2M / 2F)
+      if (males === 2 && females === 2) {
+        const teamAMales = teamA.filter(p => p.gender === 'M').length;
+        const teamBMales = teamB.filter(p => p.gender === 'M').length;
+
+        // If configuration is MM vs FF (teamAMales is 2 or 0)
+        if (teamAMales === 2 || teamBMales === 2) {
+          if (config.disallowMMvsFF) {
+            penalty += config.genderPenaltyWeight;
+          }
         }
       }
     }
