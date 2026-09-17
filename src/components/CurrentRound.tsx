@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Swords, Save, RotateCcw, FileText, Image as ImageIcon, RefreshCw, ArrowLeftRight } from 'lucide-react';
+import { Swords, Save, RotateCcw, FileText, Image as ImageIcon, RefreshCw, ArrowLeftRight, Plus, Trash2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import type { MatchCardData, Player } from '../lib/matchLogic';
 
@@ -13,6 +13,8 @@ interface CurrentRoundProps {
   onSaveResult: (courtIdx: number) => void;
   onGenerateNextRound: () => void;
   onResetRounds: () => void;
+  onDeleteRoundMatches: (roundNum: number) => void;
+  onAddMatchToRound: (roundNum: number) => void;
   isEndlessMode: boolean;
   targetRounds: number | '';
   maxPartnerGap: number | '';
@@ -29,6 +31,8 @@ export function CurrentRound({
   onSaveResult,
   onGenerateNextRound,
   onResetRounds,
+  onDeleteRoundMatches,
+  onAddMatchToRound,
   isEndlessMode,
   targetRounds,
   maxPartnerGap,
@@ -348,7 +352,38 @@ export function CurrentRound({
         <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', padding: '1rem' }}>
           {Object.entries(groupedMatches).map(([roundStr, roundSet]) => (
             <div key={roundStr} style={{ background: 'rgba(0,0,0,0.1)', padding: '1rem', borderRadius: '0.75rem' }}>
-              <h3 style={{ marginBottom: '1rem', color: 'var(--text-color-muted)', fontSize: '1.1rem' }}>Round {roundStr}</h3>
+              {(() => {
+                const roundNum = Number(roundStr);
+                const hasUnsavedInRound = roundSet.some(m => !m.isSaved);
+                return (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h3 style={{ margin: 0, color: 'var(--text-color-muted)', fontSize: '1.1rem' }}>Round {roundStr}</h3>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => onAddMatchToRound(roundNum)}
+                        title="Add an additional court match for this round"
+                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.34rem', background: 'rgba(57, 255, 20, 0.12)', color: '#39ff14', border: '1px solid rgba(57, 255, 20, 0.3)' }}
+                      >
+                        <Plus size={14} />
+                        <span>Add Match (Court)</span>
+                      </button>
+
+                      {hasUnsavedInRound && (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => onDeleteRoundMatches(roundNum)}
+                          title="Delete unsaved matches in this specific round"
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.34rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                        >
+                          <Trash2 size={14} />
+                          <span>Delete Unsaved Round</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="cards-grid">
                 {roundSet.map((card) => {
                   const idx = card.originalIndex;

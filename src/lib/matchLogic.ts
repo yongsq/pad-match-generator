@@ -383,7 +383,7 @@ interface MatchCandidate {
   };
 }
 
-function findBestMatch(players: Player[], matrix: Matrix, config: AlgorithmConfig): MatchCandidate | null {
+export function findBestMatch(players: Player[], matrix: Matrix, config: AlgorithmConfig): MatchCandidate | null {
   const isSingles = config.matchType === 'singles';
   const playersPerCourt = isSingles ? 2 : 4;
   const combos = getCombinations(players, playersPerCourt);

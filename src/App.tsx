@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import type { Player, Matrix, MatchResult, MatchCardData, AlgorithmConfig } from './lib/matchLogic';
-import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry, DEFAULT_ALGORITHM_CONFIG } from './lib/matchLogic';
+import { generateMatches, updateMatrixWithResult, getMatchConfigurations, getMatrixEntry, findBestMatch, DEFAULT_ALGORITHM_CONFIG } from './lib/matchLogic';
 import { Controls } from './components/Controls';
 import { PlayerRoster } from './components/PlayerRoster';
 import { CurrentRound } from './components/CurrentRound';
@@ -504,6 +504,84 @@ function App() {
     }
   };
 
+  const handleDeleteRoundMatches = (targetRoundNum: number) => {
+    const unsavedInRound = currentRoundResults.filter(m => m.round === targetRoundNum && !m.isSaved);
+    if (unsavedInRound.length === 0) {
+      alert(`No unsaved matches to delete in Round ${targetRoundNum}.`);
+      return;
+    }
+
+    if (!confirm(`Delete ${unsavedInRound.length} unsaved match(es) in Round ${targetRoundNum}?`)) return;
+
+    const remainingMatches = currentRoundResults.filter(m => !(m.round === targetRoundNum && !m.isSaved));
+    const syncedPlayers = recalculatePlayerStats(players, remainingMatches);
+
+    setCurrentRoundResults(remainingMatches);
+    setPlayers(syncedPlayers);
+
+    if (activeSession) {
+      deleteUnsavedMatches(activeSession.id).catch(console.error);
+      const settings = { courts: courts === '' ? 1 : courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig };
+      updateTournamentState(activeSession.id, syncedPlayers, settings).catch(console.error);
+    }
+  };
+
+  const handleAddMatchToRound = (targetRoundNum: number) => {
+    const roundMatches = currentRoundResults.filter(m => m.round === targetRoundNum);
+    const existingCourts = roundMatches.map(m => m.court);
+    const nextCourtNum = existingCourts.length > 0 ? Math.max(...existingCourts) + 1 : 1;
+
+    const playingIds = new Set<string>();
+    roundMatches.forEach(m => {
+      [...m.teamA, ...m.teamB].forEach(p => playingIds.add(p.id.trim().toLowerCase()));
+    });
+
+    const availablePlayers = players.filter(p => p.isActive && !playingIds.has(p.id.trim().toLowerCase()));
+
+    availablePlayers.sort((a, b) => {
+      if (a.gamesPlayed !== b.gamesPlayed) return a.gamesPlayed - b.gamesPlayed;
+      if (a.consecutiveSitOuts !== b.consecutiveSitOuts) return b.consecutiveSitOuts - a.consecutiveSitOuts;
+      return Math.random() - 0.5;
+    });
+
+    const isSingles = algorithmConfig.matchType === 'singles';
+    const neededPlayers = isSingles ? 2 : 4;
+
+    if (availablePlayers.length < neededPlayers) {
+      alert(`Cannot add court to Round ${targetRoundNum}: Need at least ${neededPlayers} available sit-out players, but only ${availablePlayers.length} are currently sitting out.`);
+      return;
+    }
+
+    const bestMatch = findBestMatch(availablePlayers, matrix, algorithmConfig);
+    if (!bestMatch) {
+      alert(`Could not find a valid match candidate among the available sit-out players for Round ${targetRoundNum}.`);
+      return;
+    }
+
+    const newMatchCard: MatchCardData = {
+      round: targetRoundNum,
+      court: nextCourtNum,
+      teamA: bestMatch.teamA,
+      teamB: bestMatch.teamB,
+      scoreA: '',
+      scoreB: '',
+      isSaved: false,
+      debug: bestMatch.debug
+    };
+
+    const nextRoundResults = [...currentRoundResults, newMatchCard];
+    const syncedPlayers = recalculatePlayerStats(players, nextRoundResults);
+
+    setCurrentRoundResults(nextRoundResults);
+    setPlayers(syncedPlayers);
+
+    if (activeSession) {
+      saveMatch(activeSession.id, newMatchCard).catch(console.error);
+      const settings = { courts: courts === '' ? 1 : courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig };
+      updateTournamentState(activeSession.id, syncedPlayers, settings).catch(console.error);
+    }
+  };
+
   const handleCloseSession = () => {
     if (!confirm("Close current session and return to Dashboard? Data is saved to Cloud.")) return;
     setActiveSession(null);
@@ -771,6 +849,8 @@ function App() {
         onSaveResult={handleSaveResult}
         onGenerateNextRound={handleGenerateRounds}
         onResetRounds={handleResetGeneratedRounds}
+        onDeleteRoundMatches={handleDeleteRoundMatches}
+        onAddMatchToRound={handleAddMatchToRound}
         isEndlessMode={isEndlessMode}
         targetRounds={targetRounds}
         maxPartnerGap={maxPartnerGap}
