@@ -462,17 +462,15 @@ export function findBestMatch(players: Player[], matrix: Matrix, config: Algorit
 
   candidates.sort((a, b) => a.penalty - b.penalty);
 
-  // Pick from valid candidates (< 1,000,000 penalty)
-  const validCandidates = candidates.filter(c => c.penalty < 1000000);
-  if (validCandidates.length > 0) {
-    const k = Math.min(3, validCandidates.length);
-    const randomIndex = Math.floor(Math.random() * k);
-    return validCandidates[randomIndex];
-  }
+  const minPenalty = candidates[0].penalty;
 
-  // 100% Court Filling Guarantee: If no candidate met < 1,000,000 penalty, return the best candidate available (candidates[0])
-  // so assigned courts are ALWAYS filled without dropping matches or leaving courts empty!
-  return candidates[0];
+  // Filter candidates that are near optimal penalty (within 5000 points of minPenalty)
+  // This prevents picking a heavily penalized candidate (e.g. 120,000 penalty) over an obvious optimal candidate (e.g. 400 penalty)
+  const bestCandidates = candidates.filter(c => c.penalty <= minPenalty + 5000);
+
+  const k = Math.min(3, bestCandidates.length);
+  const randomIndex = Math.floor(Math.random() * k);
+  return bestCandidates[randomIndex];
 }
 
 export function getMatchConfigurations(players: Player[], matrix: Matrix, config: AlgorithmConfig = DEFAULT_ALGORITHM_CONFIG): MatchCandidate[] {
