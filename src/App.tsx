@@ -543,11 +543,21 @@ function App() {
         if (saved) {
           try {
             localData = JSON.parse(saved);
+            const activeConfig = localData.algorithmConfig || DEFAULT_ALGORITHM_CONFIG;
+            const sanitizedCurrent = (localData.currentRoundResults || []).filter((m: MatchCardData) => {
+              if (!m.isSaved && (activeConfig.matchType ?? 'doubles') === 'doubles') {
+                if (m.teamA[0]?.id === m.teamA[1]?.id || m.teamB[0]?.id === m.teamB[1]?.id) {
+                  return false; // Purge legacy corrupted unsaved doubles match
+                }
+              }
+              return true;
+            });
+
             setPlayers(localData.players || []);
             setCourts(localData.courts || '');
             setMatrix(localData.matrix || {});
             setResults(localData.results || []);
-            setCurrentRoundResults(localData.currentRoundResults || []);
+            setCurrentRoundResults(sanitizedCurrent);
             setRoundNumber(localData.roundNumber || 1);
             setIsEndlessMode(localData.isEndlessMode ?? true);
             setTargetRounds(localData.targetRounds || '');
@@ -593,7 +603,16 @@ function App() {
 
           matches.sort((a, b) => a.round !== b.round ? a.round - b.round : a.court - b.court);
 
+          const activeType = algorithmConfig.matchType ?? 'doubles';
+
           matches.forEach(m => {
+            // Filter out legacy corrupted unsaved doubles matches with duplicated players
+            if (!m.is_saved && activeType === 'doubles') {
+              if (m.team_a[0]?.id === m.team_a[1]?.id || m.team_b[0]?.id === m.team_b[1]?.id) {
+                return;
+              }
+            }
+
             const card: MatchCardData = {
               round: m.round,
               court: m.court,
