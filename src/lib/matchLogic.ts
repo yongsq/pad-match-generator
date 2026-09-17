@@ -8,6 +8,7 @@ export interface Player {
   gamesPlayed: number;
   consecutiveSitOuts: number;
   fixedPartnerId?: string;
+  initialGamesPlayed?: number;
 }
 
 export interface MatrixRecord {
@@ -349,19 +350,7 @@ export function generateMatches(
     courtNum++;
   }
 
-  // Handle leftovers for Doubles (2 players left for a court)
-  if (config.matchType === 'doubles' && remainingPlayers.length >= 2 && courtNum <= courts) {
-    const p1 = remainingPlayers[0];
-    const p2 = remainingPlayers[1];
 
-    upcomingMatches.push({
-      round: roundNumber,
-      court: courtNum,
-      teamA: [p1, p1], 
-      teamB: [p2, p2],
-      scoreA: '', scoreB: '', isSaved: false
-    });
-  }
 
   // Randomize Court Assignments if configured
   if (config.randomizeCourts && upcomingMatches.length > 1) {
@@ -682,8 +671,8 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
     });
 
     if (hasBeginner) {
-      // 1. Teammate Gap Evaluation
-      if (teamA.length >= 2) {
+      // 1. Teammate Gap Evaluation (Exempt explicit Fixed Pairs configured by organizer)
+      if (teamA.length >= 2 && !isFixedPair(teamA[0], teamA[1])) {
         const v0 = getDuprVal(teamA[0]);
         const v1 = getDuprVal(teamA[1]);
         const isBeginnerA = (v0 !== null && v0 <= threshold) || (v1 !== null && v1 <= threshold);
@@ -697,7 +686,7 @@ function calculatePenalty(teamA: [Player, Player], teamB: [Player, Player], matr
         }
       }
 
-      if (teamB.length >= 2) {
+      if (teamB.length >= 2 && !isFixedPair(teamB[0], teamB[1])) {
         const v0 = getDuprVal(teamB[0]);
         const v1 = getDuprVal(teamB[1]);
         const isBeginnerB = (v0 !== null && v0 <= threshold) || (v1 !== null && v1 <= threshold);

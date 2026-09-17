@@ -218,7 +218,8 @@ function App() {
       gender: gender || '',
       isActive: true,
       gamesPlayed: avgGames,
-      consecutiveSitOuts: 0
+      consecutiveSitOuts: 0,
+      initialGamesPlayed: avgGames
     };
     setPlayers([...players, newPlayer]);
     
@@ -276,6 +277,35 @@ function App() {
     setPlayers(players.filter(p => p.id !== id));
   };
 
+  const recalculatePlayerStats = (currentPlayers: Player[], allMatches: MatchCardData[]): Player[] => {
+    const maxRound = allMatches.reduce((max, m) => Math.max(max, m.round), 0);
+
+    return currentPlayers.map(p => {
+      if (!p.isActive) return p;
+
+      let gamesPlayed = p.initialGamesPlayed || 0;
+      let lastPlayedRound = 0;
+
+      allMatches.forEach(m => {
+        const played = [...m.teamA, ...m.teamB].some(px => px.id.trim().toLowerCase() === p.id.trim().toLowerCase());
+        if (played) {
+          gamesPlayed += 1;
+          if (m.round > lastPlayedRound) {
+            lastPlayedRound = m.round;
+          }
+        }
+      });
+
+      const consecutiveSitOuts = lastPlayedRound === 0 ? maxRound : maxRound - lastPlayedRound;
+
+      return {
+        ...p,
+        gamesPlayed,
+        consecutiveSitOuts
+      };
+    });
+  };
+
   // Match Callbacks
   const handleGenerateRounds = () => {
     let currentPls = [...players];
@@ -298,8 +328,11 @@ function App() {
         currentRoundNum++;
     }
 
-    setPlayers(currentPls);
-    setCurrentRoundResults(prev => [...prev, ...newMatches]);
+    const updatedRoundResults = [...currentRoundResults, ...newMatches];
+    const syncedPlayers = recalculatePlayerStats(currentPls, updatedRoundResults);
+
+    setPlayers(syncedPlayers);
+    setCurrentRoundResults(updatedRoundResults);
     setRoundNumber(currentRoundNum);
 
     if (activeSession) {
@@ -314,26 +347,12 @@ function App() {
       if (!confirm("This will erase all un-saved generated matches. Proceed?")) return;
     }
     
-    const unsavedMatches = currentRoundResults.filter(m => !m.isSaved);
     const savedMatches = currentRoundResults.filter(m => m.isSaved);
-
-    const gamesToSubtract: Record<string, number> = {};
-    unsavedMatches.forEach(m => {
-      [...m.teamA, ...m.teamB].forEach(p => {
-         gamesToSubtract[p.id] = (gamesToSubtract[p.id] || 0) + 1;
-      });
-    });
-
-    const restoredPlayers = players.map(p => ({
-       ...p,
-       gamesPlayed: Math.max(0, p.gamesPlayed - (gamesToSubtract[p.id] || 0)),
-       consecutiveSitOuts: 0 
-    }));
-
     const maxSavedRound = [...results, ...savedMatches].reduce((max, r) => Math.max(max, r.round), 0);
     setRoundNumber(maxSavedRound + 1);
 
-    setPlayers(restoredPlayers);
+    const syncedPlayers = recalculatePlayerStats(players, savedMatches);
+    setPlayers(syncedPlayers);
     setCurrentRoundResults(savedMatches);
 
     if (activeSession) {
@@ -400,7 +419,6 @@ function App() {
     );
 
     let nextRoundResults = [...currentRoundResults];
-    let nextPlayers = [...players];
 
     const replacePlayerInMatch = (m: MatchCardData, oldId: string, newPlayer: Player): MatchCardData => {
       const teamA = [...m.teamA] as [Player, Player];
@@ -421,66 +439,31 @@ function App() {
       nextRoundResults[matchIdx] = updatedMatch;
       nextRoundResults[otherMatchIdx] = updatedOtherMatch;
 
+      const syncedPlayers = recalculatePlayerStats(players, nextRoundResults);
+
       setCurrentRoundResults(nextRoundResults);
+      setPlayers(syncedPlayers);
 
       if (activeSession) {
         saveMatch(activeSession.id, updatedMatch).catch(console.error);
         saveMatch(activeSession.id, updatedOtherMatch).catch(console.error);
+        const settings = { courts: courts === '' ? 1 : courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig };
+        updateTournamentState(activeSession.id, syncedPlayers, settings).catch(console.error);
       }
     } else {
       // Sit-out Swap
       const updatedMatch = attachDebugInfo(replacePlayerInMatch(match, swapOutId, swapInPlayerObj), matrix);
       nextRoundResults[matchIdx] = updatedMatch;
 
+      const syncedPlayers = recalculatePlayerStats(players, nextRoundResults);
+
       setCurrentRoundResults(nextRoundResults);
-
-      nextPlayers = nextPlayers.map(p => {
-        if (p.id === swapOutId) {
-          return { ...p, gamesPlayed: Math.max(0, p.gamesPlayed - 1) };
-        }
-        if (p.id === swapInId) {
-          return { ...p, gamesPlayed: p.gamesPlayed + 1 };
-        }
-        return p;
-      });
-
-      const maxRound = Math.max(
-        results.reduce((max, r) => Math.max(max, r.round), 0),
-        nextRoundResults.reduce((max, r) => Math.max(max, r.round), 0),
-        0
-      );
-
-      nextPlayers = nextPlayers.map(p => {
-        if (!p.isActive) return p;
-
-        let lastPlayedRound = 0;
-
-        results.forEach(r => {
-          const played = [...r.teamA, ...r.teamB].some(px => px.id === p.id);
-          if (played && r.round > lastPlayedRound) {
-            lastPlayedRound = r.round;
-          }
-        });
-
-        nextRoundResults.forEach(m => {
-          const played = [...m.teamA, ...m.teamB].some(px => px.id === p.id);
-          if (played && m.round > lastPlayedRound) {
-            lastPlayedRound = m.round;
-          }
-        });
-
-        return {
-          ...p,
-          consecutiveSitOuts: lastPlayedRound === 0 ? maxRound : maxRound - lastPlayedRound
-        };
-      });
-
-      setPlayers(nextPlayers);
+      setPlayers(syncedPlayers);
 
       if (activeSession) {
         saveMatch(activeSession.id, updatedMatch).catch(console.error);
         const settings = { courts: courts === '' ? 1 : courts, isEndlessMode, targetRounds, maxPartnerGap, algorithmConfig };
-        updateTournamentState(activeSession.id, nextPlayers, settings).catch(console.error);
+        updateTournamentState(activeSession.id, syncedPlayers, settings).catch(console.error);
       }
     }
   };
