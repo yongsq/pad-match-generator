@@ -287,10 +287,9 @@ export function generateMatches(
     }
   }
 
-  // Fallback Guarantee: If no court could be filled (selected.length < slotsPerCourt) but activePlayers >= slotsPerCourt,
-  // fill at least one court with top active players so match generation never stalls or returns 0 matches!
-  if (selected.length < slotsPerCourt && activePlayers.length >= slotsPerCourt) {
-    for (let i = 0; i < activePlayers.length && selected.length < slotsPerCourt; i++) {
+  // Guaranteed Slot Filling: Ensure selected pool is filled to capacity (slots) if activePlayers >= slots
+  if (selected.length < slots && activePlayers.length >= slots) {
+    for (let i = 0; i < activePlayers.length && selected.length < slots; i++) {
       const p = activePlayers[i];
       if (!selectedIds.has(p.id)) {
         selected.push(p);
@@ -463,15 +462,17 @@ export function findBestMatch(players: Player[], matrix: Matrix, config: Algorit
 
   candidates.sort((a, b) => a.penalty - b.penalty);
 
-  // Pick ONLY from valid candidates (< 1,000,000 penalty)
+  // Pick from valid candidates (< 1,000,000 penalty)
   const validCandidates = candidates.filter(c => c.penalty < 1000000);
-  if (validCandidates.length === 0) {
-    return null; // Refuse to generate matches that violate hard guardrails
+  if (validCandidates.length > 0) {
+    const k = Math.min(3, validCandidates.length);
+    const randomIndex = Math.floor(Math.random() * k);
+    return validCandidates[randomIndex];
   }
 
-  const k = Math.min(3, validCandidates.length);
-  const randomIndex = Math.floor(Math.random() * k);
-  return validCandidates[randomIndex];
+  // 100% Court Filling Guarantee: If no candidate met < 1,000,000 penalty, return the best candidate available (candidates[0])
+  // so assigned courts are ALWAYS filled without dropping matches or leaving courts empty!
+  return candidates[0];
 }
 
 export function getMatchConfigurations(players: Player[], matrix: Matrix, config: AlgorithmConfig = DEFAULT_ALGORITHM_CONFIG): MatchCandidate[] {
