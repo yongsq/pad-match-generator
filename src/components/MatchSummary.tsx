@@ -181,11 +181,11 @@ export const MatchSummary: React.FC<MatchSummaryProps> = ({ results, sessionTitl
                             }}>
                               <div style={{ fontSize: '0.65rem', opacity: 0.3, marginBottom: '0.5rem' }}>COURT {m.court}</div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: aWin ? '#10b981' : 'white', fontWeight: aWin ? 800 : 500 }}>
-                                <span>{m.teamA[0].name} / {m.teamA[1].name}</span>
+                                <span>{m.teamA[0].name}{m.teamA[1] && m.teamA[0].id !== m.teamA[1].id ? ` / ${m.teamA[1].name}` : ''}</span>
                                 <span>{m.scoreA}</span>
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', color: bWin ? '#10b981' : 'white', fontWeight: bWin ? 800 : 500 }}>
-                                <span>{m.teamB[0].name} / {m.teamB[1].name}</span>
+                                <span>{m.teamB[0].name}{m.teamB[1] && m.teamB[0].id !== m.teamB[1].id ? ` / ${m.teamB[1].name}` : ''}</span>
                                 <span>{m.scoreB}</span>
                               </div>
                             </div>

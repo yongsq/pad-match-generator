@@ -134,9 +134,9 @@ export const CourtSideDisplay: React.FC = () => {
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word'
                       }}>
-                        {m.teamA[0].name} {m.teamA[1] ? `& ${m.teamA[1].name}` : ''}
+                        {m.teamA[0].name} {m.teamA[1] && m.teamA[0].id !== m.teamA[1].id ? `& ${m.teamA[1].name}` : ''}
                       </div>
-                      {teamAFixed && <div style={{ color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic', marginTop: '0.3rem' }}>Fixed Partner</div>}
+                      {teamAFixed && m.teamA[0].id !== m.teamA[1].id && <div style={{ color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic', marginTop: '0.3rem' }}>Fixed Partner</div>}
                     </div>
                     
                     <div style={{ height: '2px', background: 'rgba(57, 255, 20, 0.2)', width: '60px' }} />
@@ -150,9 +150,9 @@ export const CourtSideDisplay: React.FC = () => {
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word'
                       }}>
-                        {m.teamB[0].name} {m.teamB[1] ? `& ${m.teamB[1].name}` : ''}
+                        {m.teamB[0].name} {m.teamB[1] && m.teamB[0].id !== m.teamB[1].id ? `& ${m.teamB[1].name}` : ''}
                       </div>
-                      {teamBFixed && <div style={{ color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic', marginTop: '0.3rem' }}>Fixed Partner</div>}
+                      {teamBFixed && m.teamB[0].id !== m.teamB[1].id && <div style={{ color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic', marginTop: '0.3rem' }}>Fixed Partner</div>}
                     </div>
                   </div>
 

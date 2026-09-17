@@ -372,39 +372,46 @@ export function CurrentRound({
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="team" style={{ flex: 1, minWidth: 0 }}>
-                          <div className="team-players" style={{ fontSize: '0.8rem' }}>
-                            {renderPlayer(card.teamA[0], card, idx, 'left')}
-                            {renderPlayer(card.teamA[1], card, idx, 'left')}
-                          </div>
-                        </div>
+                        {(() => {
+                          const isSinglesMatch = card.teamA[0]?.id === card.teamA[1]?.id;
+                          return (
+                            <>
+                              <div className="team" style={{ flex: 1, minWidth: 0 }}>
+                                <div className="team-players" style={{ fontSize: '0.8rem' }}>
+                                  {renderPlayer(card.teamA[0], card, idx, 'left')}
+                                  {!isSinglesMatch && card.teamA[1] && renderPlayer(card.teamA[1], card, idx, 'left')}
+                                </div>
+                              </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem', flexShrink: 0 }}>
-                          <input
-                            type="number"
-                            className="input score-input"
-                            value={card.scoreA}
-                            onChange={(e) => onUpdateScore(idx, e.target.value === '' ? '' : parseInt(e.target.value), card.scoreB)}
-                            onBlur={() => onBlurScore(idx)}
-                            style={{ margin: 0 }}
-                          />
-                          <div className="vs-divider" style={{ margin: 0, padding: '0 0.25rem' }}>VS</div>
-                          <input
-                            type="number"
-                            className="input score-input"
-                            value={card.scoreB}
-                            onChange={(e) => onUpdateScore(idx, card.scoreA, e.target.value === '' ? '' : parseInt(e.target.value))}
-                            onBlur={() => onBlurScore(idx)}
-                            style={{ margin: 0 }}
-                          />
-                        </div>
+                              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem', flexShrink: 0 }}>
+                                <input
+                                  type="number"
+                                  className="input score-input"
+                                  value={card.scoreA}
+                                  onChange={(e) => onUpdateScore(idx, e.target.value === '' ? '' : parseInt(e.target.value), card.scoreB)}
+                                  onBlur={() => onBlurScore(idx)}
+                                  style={{ margin: 0 }}
+                                />
+                                <div className="vs-divider" style={{ margin: 0, padding: '0 0.25rem' }}>VS</div>
+                                <input
+                                  type="number"
+                                  className="input score-input"
+                                  value={card.scoreB}
+                                  onChange={(e) => onUpdateScore(idx, card.scoreA, e.target.value === '' ? '' : parseInt(e.target.value))}
+                                  onBlur={() => onBlurScore(idx)}
+                                  style={{ margin: 0 }}
+                                />
+                              </div>
 
-                        <div className="team" style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
-                          <div className="team-players" style={{ fontSize: '0.8rem' }}>
-                            {renderPlayer(card.teamB[0], card, idx, 'right')}
-                            {renderPlayer(card.teamB[1], card, idx, 'right')}
-                          </div>
-                        </div>
+                              <div className="team" style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                                <div className="team-players" style={{ fontSize: '0.8rem' }}>
+                                  {renderPlayer(card.teamB[0], card, idx, 'right')}
+                                  {!isSinglesMatch && card.teamB[1] && renderPlayer(card.teamB[1], card, idx, 'right')}
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
 
                       {card.debug && (
